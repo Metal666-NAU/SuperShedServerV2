@@ -1,8 +1,20 @@
-﻿using System;
+﻿using Fleck;
+
+using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace SuperShedServerV2.Networking.Controllers;
+
+public abstract class ControllerBase<TClient> : ControllerBase
+	where TClient : Clients.ClientBase {
+
+	public virtual List<TClient> Clients { get; set; } = new();
+
+	public override void OnDisconnected(IWebSocketConnection socket) =>
+		Clients.RemoveAll(client => client.Socket == socket);
+
+}
 
 public abstract class ControllerBase {
 
@@ -10,12 +22,13 @@ public abstract class ControllerBase {
 
 	public abstract Dictionary<string, Type> Messages { get; set; }
 
-	public virtual void On<TMessage>(Action<TMessage> handler)
-		where TMessage : ITuple {
-
+	protected virtual void On<TMessage>(Action<TMessage> handler)
+		where TMessage : ITuple =>
 		Handlers.Add(typeof(TMessage), handler);
 
-	}
+	public abstract void OnAuth(IWebSocketConnection socket, string message);
+
+	public abstract void OnDisconnected(IWebSocketConnection socket);
 
 	public virtual void Handle(string command, Func<Type, ITuple?> getData) {
 

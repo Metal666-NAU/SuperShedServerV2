@@ -14,6 +14,8 @@ public static class Output {
 
 		Console.WriteLine(message);
 
+		Console.ForegroundColor = ConsoleColor.DarkGray;
+
 	}
 
 }

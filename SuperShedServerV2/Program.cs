@@ -1,9 +1,7 @@
 ﻿using Fleck;
 
-using SuperShedServerV2.Networking.Clients;
 using SuperShedServerV2.Networking.Controllers;
 
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
@@ -13,17 +11,26 @@ namespace SuperShedServerV2;
 
 public class Program {
 
-	public static Database? Database { get; set; }
+	public static readonly JsonSerializerOptions JSON_SERIALIZER_OPTIONS = new() {
+
+		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
+
+	};
 
 	public static WebSocketServer? Server { get; set; }
 
-	public static List<ClientBase> Clients { get; set; } = new();
+	public static Dictionary<string, ControllerBase> Controllers { get; set; } = new() {
+
+		{ "/worker", new WorkerController() },
+		{ "/admin", new AdminController() }
+
+	};
 
 	private static void Main(string[] args) {
 
 		Output.Log("The server is running :3");
 
-		Database = new();
+
 
 		if(!Database.Initialize()) {
 
@@ -35,10 +42,65 @@ public class Program {
 
 		Server.Start(socket => {
 
-			socket.OnOpen = () => Output.Info($"New client connected: {socket.ConnectionInfo.ClientIpAddress}");
-			socket.OnClose = () => Clients.RemoveAll(client => client.Socket == socket);
+			string GetPath() => socket.ConnectionInfo.Path;
+
+			ControllerBase? FindController() {
+
+				string path = GetPath();
+
+				if(!Controllers.TryGetValue(path, out ControllerBase? controller)) {
+
+					Output.Error($"No Controller found for path {path}!");
+
+					return null;
+
+				}
+
+				return controller;
+
+			}
+
+			socket.OnOpen = () => Output.Info($"New client connected: {socket.ConnectionInfo.ClientIpAddress} -> {GetPath()}");
+			socket.OnClose = () => {
+
+				Output.Info($"Client disconnected: {socket.ConnectionInfo.ClientIpAddress}");
+
+				FindController()?.OnDisconnected(socket);
+
+			};
 
 			socket.OnMessage = message => {
+
+				Output.Info($"Received auth message: {message} on {GetPath()}");
+
+				FindController()?.OnAuth(socket, message);
+
+			};
+
+			socket.OnBinary = message => {
+
+				using MemoryStream memoryStream = new(message);
+
+				using BinaryReader binaryReader = new(memoryStream);
+
+				string command = binaryReader.ReadString();
+				string data = binaryReader.ReadString();
+
+				FindController()?.Handle(command, type => {
+
+					if(!typeof(ITuple).IsAssignableFrom(type)) {
+
+						return null;
+
+					}
+
+					return JsonSerializer.Deserialize(data, type, JSON_SERIALIZER_OPTIONS) as ITuple;
+
+				});
+
+			};
+
+			/*socket.OnMessage = message => {
 
 				Messages.AuthRequest? authRequest = JsonSerializer.Deserialize<Messages.AuthRequest>(message);
 
@@ -112,11 +174,11 @@ public class Program {
 
 				});
 
-			};
+			};*/
 
 		});
 
-		Console.ReadLine();
+		UI.Start();
 
 		Server.Dispose();
 
