@@ -1,20 +1,53 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Reflection;
 
 namespace SuperShedServerV2;
 
 public static class Output {
 
-	public static void Log(string message) => WriteWithColor(message);
-	public static void Info(string message) => WriteWithColor(message, ConsoleColor.Green);
-	public static void Error(string message) => WriteWithColor(message, ConsoleColor.Red);
+	public static List<(string Message, Severity Severity)> Logs { get; set; } =
+		new();
 
-	private static void WriteWithColor(string message, ConsoleColor color = ConsoleColor.White) {
+	public static event Action<string, Severity>? OnLog;
 
-		Console.ForegroundColor = color;
+	public static void Log(string message) => Write(message, Severity.Log);
+	public static void Info(string message) => Write(message, Severity.Info);
+	public static void Error(string message) => Write(message, Severity.Error);
+
+	public static void Write(string message, Severity severity) {
+
+		Console.ForegroundColor = typeof(Severity).GetMember(severity.ToString())
+													.First()
+													.GetCustomAttribute<SeverityAttribute>()!
+													.Color;
 
 		Console.WriteLine(message);
 
 		Console.ForegroundColor = ConsoleColor.DarkGray;
+
+		Logs.Add((message, severity));
+
+		OnLog?.Invoke(message, severity);
+
+	}
+
+	public enum Severity {
+
+		[Severity(ConsoleColor.White)]
+		Log,
+		[Severity(ConsoleColor.Green)]
+		Info,
+		[Severity(ConsoleColor.Red)]
+		Error
+
+	}
+
+	[AttributeUsage(AttributeTargets.Field)]
+	public class SeverityAttribute(ConsoleColor color) : Attribute {
+
+		public virtual ConsoleColor Color { get; set; } = color;
 
 	}
 

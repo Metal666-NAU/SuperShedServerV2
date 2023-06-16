@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="Fleck" Version="1.2.0" />
+    <PackageReference Include="MessagePack" Version="2.5.108" />
     <PackageReference Include="MongoDB.Driver" Version="2.19.2" />
     <PackageReference Include="Spectre.Console" Version="0.47.0" />
   </ItemGroup>

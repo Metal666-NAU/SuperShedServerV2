@@ -120,17 +120,26 @@ public static class Database {
 													password.Equals(admin.Password))
 						.FirstOrDefault();
 
-	public static string CreateAuthToken(ObjectId userId) {
+	public static string FindOrCreateAuthToken(ObjectId userId) {
 
-		string token = GenerateAuthToken();
+		string? token = MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
+										.Find(authToken => authToken.UserId.Equals(userId))
+										.FirstOrDefault()?
+										.Token;
 
-		MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
-						.InsertOne(new() {
+		if(token == null) {
 
-							Token = token,
-							UserId = userId
+			token = GenerateAuthToken();
 
-						});
+			MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
+							.InsertOne(new() {
+
+								Token = token,
+								UserId = userId
+
+							});
+
+		}
 
 		return token;
 

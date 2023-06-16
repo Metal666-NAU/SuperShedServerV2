@@ -4,7 +4,6 @@ using SuperShedServerV2.Networking.Controllers;
 
 using System.Collections.Generic;
 using System.IO;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using System.Threading.Tasks;
 
@@ -82,20 +81,10 @@ public class Program {
 
 				using BinaryReader binaryReader = new(memoryStream);
 
-				string command = binaryReader.ReadString();
-				string data = binaryReader.ReadString();
+				byte command = binaryReader.ReadByte();
+				byte[] data = binaryReader.ReadBytes(int.MaxValue);
 
-				FindController()?.Handle(command, type => {
-
-					if(!typeof(ITuple).IsAssignableFrom(type)) {
-
-						return null;
-
-					}
-
-					return JsonSerializer.Deserialize(data, type, JSON_SERIALIZER_OPTIONS) as ITuple;
-
-				});
+				FindController()?.Handle(command, data);
 
 			};
 

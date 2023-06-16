@@ -2,7 +2,6 @@
 
 using System;
 using System.Collections.Generic;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 
 namespace SuperShedServerV2.Networking.Controllers;
@@ -19,13 +18,12 @@ public abstract class ControllerBase<TClient> : ControllerBase
 
 public abstract class ControllerBase {
 
-	public virtual Dictionary<Type, Delegate> Handlers { get; set; } = new();
+	public virtual Dictionary<short, Action<byte[]>> Handlers { get; set; } = new();
 
-	public abstract Dictionary<string, Type> Messages { get; set; }
+	//public abstract Dictionary<string, Type> Messages { get; set; }
 
-	protected virtual void On<TMessage>(Action<TMessage> handler)
-		where TMessage : ITuple =>
-		Handlers.Add(typeof(TMessage), handler);
+	protected virtual void On(byte command, Action<byte[]> handler) =>
+		Handlers.Add(command, handler);
 
 	public virtual void Auth(IWebSocketConnection socket, string message) {
 
@@ -47,9 +45,19 @@ public abstract class ControllerBase {
 
 	public abstract void OnDisconnected(IWebSocketConnection socket);
 
-	public virtual void Handle(string command, Func<Type, ITuple?> getData) {
+	public virtual void Handle(short command, byte[] data/*string command, Func<Type, ITuple?> getData*/) {
 
-		Type? messageType = Messages.GetValueOrDefault(command);
+		Action<byte[]>? handler = Handlers.GetValueOrDefault(command);
+
+		if(handler == null) {
+
+			return;
+
+		}
+
+		handler?.DynamicInvoke(data);
+
+		/*Type? messageType = Messages.GetValueOrDefault(command);
 
 		if(messageType == null) {
 
@@ -65,7 +73,7 @@ public abstract class ControllerBase {
 
 		}
 
-		handler?.DynamicInvoke(getData(messageType));
+		handler?.DynamicInvoke(getData(messageType));*/
 
 	}
 

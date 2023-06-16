@@ -3,24 +3,23 @@
 using MongoDB.Bson;
 
 using System;
-using System.Collections.Generic;
 using System.Text.Json;
 
-using Test = (int a, int b);
+//using Test = (int a, int b);
 
 namespace SuperShedServerV2.Networking.Controllers;
 
 public class WorkerController : ControllerBase<Clients.WorkerClient> {
 
-	public override Dictionary<string, Type> Messages { get; set; } = new() {
+	/*public override Dictionary<string, Type> Messages { get; set; } = new() {
 
 		{ "test", typeof(Test) }
 
-	};
+	};*/
 
 	public WorkerController() {
 
-		On<Test>(test => { });
+		//On<Test>(test => { });
 
 	}
 
@@ -42,7 +41,12 @@ public class WorkerController : ControllerBase<Clients.WorkerClient> {
 
 			Output.Log($"Authenticated client: {socket.ConnectionInfo.ClientIpAddress} on {socket.ConnectionInfo.Path}");
 
-			Clients.Add(new(worker, socket));
+			Clients.Add(new() {
+
+				Worker = worker,
+				Socket = socket
+
+			});
 
 			socket.Send(JsonSerializer.Serialize(new AuthResponse() {
 
@@ -83,7 +87,7 @@ public class WorkerController : ControllerBase<Clients.WorkerClient> {
 
 			ObjectId workerId = GlobalState.PendingWorkerAuth.Value.WorkerId;
 
-			Accept(Database.CreateAuthToken(workerId), workerId);
+			Accept(Database.FindOrCreateAuthToken(workerId), workerId);
 
 			return;
 

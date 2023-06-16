@@ -2,25 +2,26 @@
 
 using MongoDB.Bson;
 
-using System;
-using System.Collections.Generic;
-using System.Text.Json;
+using SuperShedServerV2.Networking.Clients;
 
-using Test = (int a, int b);
+using System;
+using System.Text.Json;
 
 namespace SuperShedServerV2.Networking.Controllers;
 
-public class AdminController : ControllerBase<Clients.AdminClient> {
-
-	public override Dictionary<string, Type> Messages { get; set; } = new() {
-
-		{ "test", typeof(Test) }
-
-	};
+public class AdminController : ControllerBase<AdminClient> {
 
 	public AdminController() {
 
-		On<Test>(test => { });
+		Output.OnLog += async (message, severity) => {
+
+			foreach(AdminClient adminClient in Clients) {
+
+				await adminClient.SendLog(message, severity);
+
+			}
+
+		};
 
 	}
 
@@ -42,7 +43,14 @@ public class AdminController : ControllerBase<Clients.AdminClient> {
 
 			Output.Log($"Authenticated client: {socket.ConnectionInfo.ClientIpAddress} on {socket.ConnectionInfo.Path}");
 
-			Clients.Add(new(admin, socket));
+			AdminClient adminClient = new() {
+
+				Admin = admin,
+				Socket = socket
+
+			};
+
+			Clients.Add(adminClient);
 
 			socket.Send(JsonSerializer.Serialize(new AuthResponse() {
 
@@ -51,9 +59,16 @@ public class AdminController : ControllerBase<Clients.AdminClient> {
 
 			}, Program.JSON_SERIALIZER_OPTIONS));
 
+			foreach((string Message, Output.Severity Severity) log in Output.Logs) {
+
+				_ = adminClient.SendLog(log.Message, log.Severity);
+
+			}
+
 		}
 
-		AuthRequest? authRequest = JsonSerializer.Deserialize<AuthRequest>(message, Program.JSON_SERIALIZER_OPTIONS);
+		AuthRequest? authRequest = JsonSerializer.Deserialize<AuthRequest>(message,
+																			Program.JSON_SERIALIZER_OPTIONS);
 
 		if(authRequest == null) {
 
@@ -76,7 +91,7 @@ public class AdminController : ControllerBase<Clients.AdminClient> {
 
 			}
 
-			Accept(Database.CreateAuthToken(adminId.Value), adminId.Value);
+			Accept(Database.FindOrCreateAuthToken(adminId.Value), adminId.Value);
 
 			return;
 
@@ -111,6 +126,17 @@ public class AdminController : ControllerBase<Clients.AdminClient> {
 		public virtual string? Username { get; set; }
 		public virtual string? Password { get; set; }
 		public virtual string? AuthToken { get; set; }
+
+	}
+
+	public static class Messages {
+
+		#region Incoming
+		#endregion
+
+		#region Outgoing
+		public record Log(string Message, Output.Severity Severity) : MessageData;
+		#endregion
 
 	}
 
