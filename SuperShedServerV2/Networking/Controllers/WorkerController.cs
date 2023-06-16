@@ -24,21 +24,7 @@ public class WorkerController : ControllerBase<Clients.WorkerClient> {
 
 	}
 
-	public override void OnAuth(IWebSocketConnection socket, string message) {
-
-		void Reject(string message) {
-
-			Output.Error(message);
-
-			socket.Send(JsonSerializer.Serialize(new AuthResponse() {
-
-				Success = false
-
-			}, Program.JSON_SERIALIZER_OPTIONS));
-
-			socket.Close();
-
-		}
+	protected override void OnAuth(IWebSocketConnection socket, string message, Action<string> reject) {
 
 		void Accept(string authToken, ObjectId workerId) {
 
@@ -71,7 +57,7 @@ public class WorkerController : ControllerBase<Clients.WorkerClient> {
 
 		if(authRequest == null) {
 
-			Reject($"Failed to parse authentication request ({message})");
+			reject($"Failed to parse authentication request ({message})");
 
 			return;
 
@@ -81,7 +67,7 @@ public class WorkerController : ControllerBase<Clients.WorkerClient> {
 
 			if(GlobalState.PendingWorkerAuth == null) {
 
-				Reject("Failed to authenticate using Login Code: No Worker is pending auth.");
+				reject("Failed to authenticate using Login Code: No Worker is pending auth.");
 
 				return;
 
@@ -89,7 +75,7 @@ public class WorkerController : ControllerBase<Clients.WorkerClient> {
 
 			if(GlobalState.PendingWorkerAuth.Value.LoginCode.Equals(authRequest.LoginCode)) {
 
-				Reject($"Failed to authenticate using Login Code: Provided code is incorrect ({authRequest.LoginCode}).");
+				reject($"Failed to authenticate using Login Code: Provided code is incorrect ({authRequest.LoginCode}).");
 
 				return;
 
@@ -111,7 +97,7 @@ public class WorkerController : ControllerBase<Clients.WorkerClient> {
 
 			if(workerId == null) {
 
-				Reject($"Failed to authenticate using Auth Token: Provided token is invalid ({authToken}).");
+				reject($"Failed to authenticate using Auth Token: Provided token is invalid ({authToken}).");
 
 				return;
 
@@ -123,20 +109,13 @@ public class WorkerController : ControllerBase<Clients.WorkerClient> {
 
 		}
 
-		Reject($"Failed to authenticate: No auth data provided.");
+		reject("Failed to authenticate: No auth data provided.");
 
 	}
 
 	public class AuthRequest {
 
 		public virtual string? LoginCode { get; set; }
-		public virtual string? AuthToken { get; set; }
-
-	}
-
-	public class AuthResponse {
-
-		public virtual bool? Success { get; set; }
 		public virtual string? AuthToken { get; set; }
 
 	}

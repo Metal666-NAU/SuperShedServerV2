@@ -1,4 +1,5 @@
 ﻿using MongoDB.Bson;
+using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
 using System;
@@ -14,6 +15,12 @@ public static class Database {
 
 	public static bool Initialize() {
 
+		ConventionRegistry.Register("CamelCase", new ConventionPack {
+
+			new CamelCaseElementNameConvention()
+
+		}, type => true);
+
 		string? connectionString = Environment.GetEnvironmentVariable("SUPERSHED_MONGODB_URI");
 
 		if(connectionString == null) {
@@ -26,7 +33,7 @@ public static class Database {
 
 		MongoClient = new(connectionString);
 
-		MainDatabase = MongoClient.GetDatabase("warehouse");
+		MainDatabase = MongoClient.GetDatabase("warehouse", new() { });
 
 		/*BsonDocument? document = await MongoClient.GetDatabase("sample_mflix")
 											.GetCollection<BsonDocument>("movies")
@@ -102,9 +109,20 @@ public static class Database {
 						.Find(worker => worker.Id == workerId)
 						.FirstOrDefault();
 
+	public static Collections.Admin? GetAdmin(ObjectId adminId) =>
+		MainDatabase!.GetCollection<Collections.Admin>(Collections.ADMINS)
+						.Find(admin => admin.Id == adminId)
+						.FirstOrDefault();
+
+	public static Collections.Admin? GetAdmin(string email, string password) =>
+		MainDatabase!.GetCollection<Collections.Admin>(Collections.ADMINS)
+						.Find(admin => email.Equals(admin.Email) &&
+													password.Equals(admin.Password))
+						.FirstOrDefault();
+
 	public static string CreateAuthToken(ObjectId userId) {
 
-		string token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
+		string token = GenerateAuthToken();
 
 		MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
 						.InsertOne(new() {
@@ -121,14 +139,17 @@ public static class Database {
 	public static ObjectId? GetUserId(string authToken) =>
 		MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
 						.Find(token => authToken.Equals(token.Token))
-						.FirstOrDefault()
+						.FirstOrDefault()?
 						.UserId;
+
+	private static string GenerateAuthToken() =>
+		Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 
 	public static class Collections {
 
-		//public const string USERS = "users";
 		public const string WORKERS = "workers";
-		public const string AUTH_TOKENS = "login_tokens";
+		public const string ADMINS = "admins";
+		public const string AUTH_TOKENS = "auth_tokens";
 		public const string GOODS = "goods";
 
 		/*public class User {
@@ -143,6 +164,14 @@ public static class Database {
 		public class Worker {
 
 			public virtual ObjectId Id { get; set; }
+
+		}
+
+		public class Admin {
+
+			public virtual ObjectId Id { get; set; }
+			public virtual string? Email { get; set; }
+			public virtual string? Password { get; set; }
 
 		}
 

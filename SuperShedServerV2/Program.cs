@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using System.Threading.Tasks;
 
 namespace SuperShedServerV2;
 
@@ -26,11 +27,9 @@ public class Program {
 
 	};
 
-	private static void Main(string[] args) {
+	private static async Task Main(string[] args) {
 
 		Output.Log("The server is running :3");
-
-
 
 		if(!Database.Initialize()) {
 
@@ -73,7 +72,7 @@ public class Program {
 
 				Output.Info($"Received auth message: {message} on {GetPath()}");
 
-				FindController()?.OnAuth(socket, message);
+				FindController()?.Auth(socket, message);
 
 			};
 
@@ -178,9 +177,15 @@ public class Program {
 
 		});
 
-		UI.Start();
+		await CommandProcessor.Run();
 
-		Server.Dispose();
+		Dispose();
+
+	}
+
+	public static void Dispose() {
+
+		Server!.Dispose();
 
 	}
 

@@ -3,6 +3,7 @@
 using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
+using System.Text.Json;
 
 namespace SuperShedServerV2.Networking.Controllers;
 
@@ -26,7 +27,23 @@ public abstract class ControllerBase {
 		where TMessage : ITuple =>
 		Handlers.Add(typeof(TMessage), handler);
 
-	public abstract void OnAuth(IWebSocketConnection socket, string message);
+	public virtual void Auth(IWebSocketConnection socket, string message) {
+
+		OnAuth(socket, message, reason => {
+
+			Output.Error(reason);
+
+			socket.Send(JsonSerializer.Serialize(new AuthResponse() {
+
+				Success = false
+
+			}, Program.JSON_SERIALIZER_OPTIONS));
+
+		});
+
+	}
+
+	protected abstract void OnAuth(IWebSocketConnection socket, string message, Action<string> reject);
 
 	public abstract void OnDisconnected(IWebSocketConnection socket);
 
@@ -49,6 +66,13 @@ public abstract class ControllerBase {
 		}
 
 		handler?.DynamicInvoke(getData(messageType));
+
+	}
+
+	public class AuthResponse {
+
+		public virtual bool? Success { get; set; }
+		public virtual string? AuthToken { get; set; }
 
 	}
 
