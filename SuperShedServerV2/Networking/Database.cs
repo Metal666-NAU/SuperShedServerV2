@@ -3,6 +3,7 @@ using MongoDB.Bson.Serialization.Conventions;
 using MongoDB.Driver;
 
 using System;
+using System.Collections.Generic;
 using System.Security.Cryptography;
 
 namespace SuperShedServerV2;
@@ -33,81 +34,21 @@ public static class Database {
 
 		MongoClient = new(connectionString);
 
-		MainDatabase = MongoClient.GetDatabase("warehouse", new() { });
-
-		/*BsonDocument? document = await MongoClient.GetDatabase("sample_mflix")
-											.GetCollection<BsonDocument>("movies")
-											.FindAsync(Builders<BsonDocument>.Filter.Eq("title", "Back to the Future"))
-											.First();
-
-		Console.WriteLine(document);*/
+		MainDatabase = MongoClient.GetDatabase("warehouse");
 
 		return true;
 
 	}
 
-	/*public static bool TryGetUser(string email, string password, out Collections.User? user) {
-
-		user = MainDatabase!.GetCollection<Collections.User>(Collections.USERS)
-							.Find(user =>
-									user.Email!.Equals(email) &&
-									user.Password!.Equals(password))
-							.FirstOrDefault();
-
-		return user != null;
-
-	}
-
-	public static string LogUserIn(Collections.User user) {
-
-		string token = Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
-
-		MainDatabase!.GetCollection<Collections.LoginToken>(Collections.LOGIN_TOKENS)
-						.InsertOne(new() {
-
-							Token = token,
-							UserId = user.Id
-
-						});
-
-		return token;
-
-	}
-
-	public static bool TryGetUser(ObjectId userId, out Collections.User? user) {
-
-		user = MainDatabase!.GetCollection<Collections.User>(Collections.USERS)
-							.Find(user => user.Id == userId)
-							.FirstOrDefault();
-
-		return user != null;
-
-	}
-
-	public static bool ValidateLoginToken(string token, out Collections.User? user) {
-
-		Collections.LoginToken? loginToken = MainDatabase!.GetCollection<Collections.LoginToken>(Collections.LOGIN_TOKENS)
-															.Find(loginToken =>
-																	loginToken.Token != null &&
-																	loginToken.Token.Equals(token))
-															.FirstOrDefault();
-
-		if(loginToken == null) {
-
-			user = null;
-
-			return false;
-
-		}
-
-		return TryGetUser(loginToken.UserId, out user);
-
-	}*/
-
 	public static Collections.Worker? GetWorker(ObjectId workerId) =>
 		MainDatabase!.GetCollection<Collections.Worker>(Collections.WORKERS)
 						.Find(worker => worker.Id == workerId)
 						.FirstOrDefault();
+
+	public static List<Collections.Worker> GetWorkers() =>
+		MainDatabase!.GetCollection<Collections.Worker>(Collections.WORKERS)
+						.AsQueryable()
+						.ToList();
 
 	public static Collections.Admin? GetAdmin(ObjectId adminId) =>
 		MainDatabase!.GetCollection<Collections.Admin>(Collections.ADMINS)
@@ -132,12 +73,7 @@ public static class Database {
 			token = GenerateAuthToken();
 
 			MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
-							.InsertOne(new() {
-
-								Token = token,
-								UserId = userId
-
-							});
+							.InsertOne(new(userId, token));
 
 		}
 
@@ -161,34 +97,15 @@ public static class Database {
 		public const string AUTH_TOKENS = "auth_tokens";
 		public const string GOODS = "goods";
 
-		/*public class User {
+		public record Worker(string? Name, ObjectId? Id = null) : DatabaseObjectBase(Id);
 
-			public virtual ObjectId Id { get; set; }
-			public virtual string? Email { get; set; }
-			public virtual string? Password { get; set; }
-			//public virtual ObjectId RoleId { get; set; }
+		public record Admin(string? Email, string? Password, ObjectId? Id = null) : DatabaseObjectBase(Id);
 
-		}*/
+		public record AuthToken(ObjectId UserId, string? Token, ObjectId? Id = null) : DatabaseObjectBase(Id);
 
-		public class Worker {
+		public abstract record DatabaseObjectBase(ObjectId? Id = null) {
 
-			public virtual ObjectId Id { get; set; }
-
-		}
-
-		public class Admin {
-
-			public virtual ObjectId Id { get; set; }
-			public virtual string? Email { get; set; }
-			public virtual string? Password { get; set; }
-
-		}
-
-		public class AuthToken {
-
-			public virtual ObjectId Id { get; set; }
-			public virtual ObjectId UserId { get; set; }
-			public virtual string? Token { get; set; }
+			public virtual string StringId => Id.ToString()!;
 
 		}
 

@@ -20,7 +20,7 @@ public abstract class ControllerBase {
 
 	public virtual Dictionary<short, Action<byte[]>> Handlers { get; set; } = new();
 
-	//public abstract Dictionary<string, Type> Messages { get; set; }
+	public virtual void Initialize() { }
 
 	protected virtual void On(byte command, Action<byte[]> handler) =>
 		Handlers.Add(command, handler);

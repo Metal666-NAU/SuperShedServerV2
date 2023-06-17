@@ -9,9 +9,17 @@ public class AdminClient : ClientBase {
 	public virtual async Task SendLog(string message, Output.Severity severity) =>
 		await Send((byte) Message.Log, message, (byte) severity);
 
+	public virtual async Task SendWorker(string workerId, string workerName) =>
+		await Send((byte) Message.Worker, workerId, workerName);
+
+	public virtual async Task SendWorkerStatus(string workerId, bool isOnline) =>
+		await Send((byte) Message.WorkerStatus, workerId, isOnline);
+
 	public enum Message {
 
-		Log
+		Log,
+		Worker,
+		WorkerStatus
 
 	}
 

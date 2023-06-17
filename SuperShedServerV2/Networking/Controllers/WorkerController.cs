@@ -2,26 +2,17 @@
 
 using MongoDB.Bson;
 
-using System;
-using System.Text.Json;
+using SuperShedServerV2.Networking.Clients;
 
-//using Test = (int a, int b);
+using System;
+using System.Linq;
+using System.Text.Json;
 
 namespace SuperShedServerV2.Networking.Controllers;
 
-public class WorkerController : ControllerBase<Clients.WorkerClient> {
+public class WorkerController : ControllerBase<WorkerClient> {
 
-	/*public override Dictionary<string, Type> Messages { get; set; } = new() {
-
-		{ "test", typeof(Test) }
-
-	};*/
-
-	public WorkerController() {
-
-		//On<Test>(test => { });
-
-	}
+	public event Action<WorkerClient, bool>? WorkerStatusChanged;
 
 	protected override void OnAuth(IWebSocketConnection socket, string message, Action<string> reject) {
 
@@ -41,12 +32,14 @@ public class WorkerController : ControllerBase<Clients.WorkerClient> {
 
 			Output.Log($"Authenticated client: {socket.ConnectionInfo.ClientIpAddress} on {socket.ConnectionInfo.Path}");
 
-			Clients.Add(new() {
+			WorkerClient workerClient = new() {
 
 				Worker = worker,
 				Socket = socket
 
-			});
+			};
+
+			Clients.Add(workerClient);
 
 			socket.Send(JsonSerializer.Serialize(new AuthResponse() {
 
@@ -54,6 +47,8 @@ public class WorkerController : ControllerBase<Clients.WorkerClient> {
 				AuthToken = authToken
 
 			}, Program.JSON_SERIALIZER_OPTIONS));
+
+			WorkerStatusChanged?.Invoke(workerClient, true);
 
 		}
 
@@ -114,6 +109,14 @@ public class WorkerController : ControllerBase<Clients.WorkerClient> {
 		}
 
 		reject("Failed to authenticate: No auth data provided.");
+
+	}
+
+	public override void OnDisconnected(IWebSocketConnection socket) {
+
+		WorkerStatusChanged?.Invoke(Clients.Single(workerClient => workerClient.Socket == socket), false);
+
+		base.OnDisconnected(socket);
 
 	}
 

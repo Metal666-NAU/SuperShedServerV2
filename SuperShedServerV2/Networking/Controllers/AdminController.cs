@@ -11,13 +11,23 @@ namespace SuperShedServerV2.Networking.Controllers;
 
 public class AdminController : ControllerBase<AdminClient> {
 
-	public AdminController() {
+	public override void Initialize() {
 
 		Output.OnLog += async (message, severity) => {
 
 			foreach(AdminClient adminClient in Clients) {
 
 				await adminClient.SendLog(message, severity);
+
+			}
+
+		};
+
+		Program.GetController<WorkerController>().WorkerStatusChanged += async (workerClient, online) => {
+
+			foreach(AdminClient adminClient in Clients) {
+
+				await adminClient.SendWorkerStatus(workerClient.Worker.StringId, online);
 
 			}
 
@@ -62,6 +72,20 @@ public class AdminController : ControllerBase<AdminClient> {
 			foreach((string Message, Output.Severity Severity) log in Output.Logs) {
 
 				_ = adminClient.SendLog(log.Message, log.Severity);
+
+			}
+
+			foreach(Database.Collections.Worker worker in Database.GetWorkers()) {
+
+				_ = adminClient.SendWorker(worker.StringId, worker.Name ?? "[null]");
+
+			}
+
+			WorkerController workerController = Program.GetController<WorkerController>();
+
+			foreach(WorkerClient workerClient in workerController.Clients) {
+
+				_ = adminClient.SendWorkerStatus(workerClient.Worker.StringId, true);
 
 			}
 
@@ -126,17 +150,6 @@ public class AdminController : ControllerBase<AdminClient> {
 		public virtual string? Username { get; set; }
 		public virtual string? Password { get; set; }
 		public virtual string? AuthToken { get; set; }
-
-	}
-
-	public static class Messages {
-
-		#region Incoming
-		#endregion
-
-		#region Outgoing
-		public record Log(string Message, Output.Severity Severity) : MessageData;
-		#endregion
 
 	}
 
