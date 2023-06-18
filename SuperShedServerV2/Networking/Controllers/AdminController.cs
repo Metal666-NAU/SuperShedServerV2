@@ -5,6 +5,8 @@ using MongoDB.Bson;
 using SuperShedServerV2.Networking.Clients;
 
 using System;
+using System.Collections.Generic;
+using System.Security.Cryptography;
 using System.Text.Json;
 
 namespace SuperShedServerV2.Networking.Controllers;
@@ -13,25 +15,51 @@ public class AdminController : ControllerBase<AdminClient> {
 
 	public override void Initialize() {
 
-		Output.OnLog += async (message, severity) => {
+		Output.OnLog += (message, severity) => {
 
 			foreach(AdminClient adminClient in Clients) {
 
-				await adminClient.SendLog(message, severity);
+				adminClient.SendLog(message, severity);
 
 			}
 
 		};
 
-		Program.GetController<WorkerController>().WorkerStatusChanged += async (workerClient, online) => {
+		Program.GetController<WorkerController>().WorkerStatusChanged += (workerClient, online) => {
 
 			foreach(AdminClient adminClient in Clients) {
 
-				await adminClient.SendWorkerStatus(workerClient.Worker.StringId, online);
+				adminClient.SendWorkerStatus(workerClient.Worker.StringId, online);
 
 			}
 
 		};
+
+		On((byte) Message.StartWorkerAuth, (client, data) => {
+
+			ObjectId workerId = new(data.ReadString());
+
+			List<string> loginCodeCharacters = new();
+
+			for(int i = 0; i < 6; i++) {
+
+				loginCodeCharacters.Add(RandomNumberGenerator.GetInt32(10).ToString());
+
+			}
+
+			string loginCode = string.Join("", loginCodeCharacters);
+
+			client.WorkerPendingAuth = (loginCode, workerId);
+
+			client.SendWorkerLoginCode(loginCode);
+
+		});
+
+		On((byte) Message.CancelWorkerAuth, (client, data) => {
+
+			client.WorkerPendingAuth = null;
+
+		});
 
 	}
 
@@ -71,13 +99,13 @@ public class AdminController : ControllerBase<AdminClient> {
 
 			foreach((string Message, Output.Severity Severity) log in Output.Logs) {
 
-				_ = adminClient.SendLog(log.Message, log.Severity);
+				adminClient.SendLog(log.Message, log.Severity);
 
 			}
 
 			foreach(Database.Collections.Worker worker in Database.GetWorkers()) {
 
-				_ = adminClient.SendWorker(worker.StringId, worker.Name ?? "[null]");
+				adminClient.SendWorker(worker.StringId, worker.Name ?? "[null]");
 
 			}
 
@@ -85,7 +113,7 @@ public class AdminController : ControllerBase<AdminClient> {
 
 			foreach(WorkerClient workerClient in workerController.Clients) {
 
-				_ = adminClient.SendWorkerStatus(workerClient.Worker.StringId, true);
+				adminClient.SendWorkerStatus(workerClient.Worker.StringId, true);
 
 			}
 
@@ -145,11 +173,54 @@ public class AdminController : ControllerBase<AdminClient> {
 
 	}
 
+	public virtual ObjectId? LogWorkerIn(string loginCode) {
+
+		(AdminClient AdminClient, ObjectId WorkerId)? pendingAuth = null;
+
+		foreach(AdminClient adminClient in Clients) {
+
+			if(!adminClient.WorkerPendingAuth.HasValue) {
+
+				continue;
+
+			}
+
+			(string LoginCode, ObjectId WorkerId) workerPendingAuth = adminClient.WorkerPendingAuth.Value;
+
+			if(workerPendingAuth.LoginCode.Equals(loginCode)) {
+
+				continue;
+
+			}
+
+			pendingAuth = (adminClient, workerPendingAuth.WorkerId);
+
+		}
+
+		if(pendingAuth.HasValue) {
+
+			pendingAuth.Value.AdminClient.WorkerPendingAuth = null;
+
+			pendingAuth.Value.AdminClient.SendWorkerAuthSuccess();
+
+		}
+
+		return pendingAuth?.WorkerId;
+
+	}
+
 	public class AuthRequest {
 
 		public virtual string? Username { get; set; }
 		public virtual string? Password { get; set; }
 		public virtual string? AuthToken { get; set; }
+
+	}
+
+	public enum Message {
+
+		StartWorkerAuth,
+		CancelWorkerAuth
 
 	}
 

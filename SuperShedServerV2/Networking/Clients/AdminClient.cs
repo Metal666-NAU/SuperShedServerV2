@@ -1,4 +1,4 @@
-﻿using System.Threading.Tasks;
+﻿using MongoDB.Bson;
 
 namespace SuperShedServerV2.Networking.Clients;
 
@@ -6,20 +6,30 @@ public class AdminClient : ClientBase {
 
 	public required virtual Database.Collections.Admin Admin { get; set; }
 
-	public virtual async Task SendLog(string message, Output.Severity severity) =>
-		await Send((byte) Message.Log, message, (byte) severity);
+	public virtual (string LoginCode, ObjectId WorkerId)? WorkerPendingAuth { get; set; }
 
-	public virtual async Task SendWorker(string workerId, string workerName) =>
-		await Send((byte) Message.Worker, workerId, workerName);
+	public virtual void SendLog(string message, Output.Severity severity) =>
+		Send((byte) Message.Log, message, (byte) severity);
 
-	public virtual async Task SendWorkerStatus(string workerId, bool isOnline) =>
-		await Send((byte) Message.WorkerStatus, workerId, isOnline);
+	public virtual void SendWorker(string workerId, string workerName) =>
+		Send((byte) Message.Worker, workerId, workerName);
+
+	public virtual void SendWorkerStatus(string workerId, bool isOnline) =>
+		Send((byte) Message.WorkerStatus, workerId, isOnline);
+
+	public virtual void SendWorkerLoginCode(string loginCode) =>
+		Send((byte) Message.WorkerLoginCode, loginCode);
+
+	public virtual void SendWorkerAuthSuccess() =>
+		Send((byte) Message.WorkerAuthSuccess);
 
 	public enum Message {
 
 		Log,
 		Worker,
-		WorkerStatus
+		WorkerStatus,
+		WorkerLoginCode,
+		WorkerAuthSuccess
 
 	}
 

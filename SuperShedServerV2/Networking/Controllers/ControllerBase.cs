@@ -2,6 +2,8 @@
 
 using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text.Json;
 
 namespace SuperShedServerV2.Networking.Controllers;
@@ -9,7 +11,30 @@ namespace SuperShedServerV2.Networking.Controllers;
 public abstract class ControllerBase<TClient> : ControllerBase
 	where TClient : Clients.ClientBase {
 
+	public virtual Dictionary<byte, Action<TClient, BinaryReader>> TypedHandlers { get; set; }
+		= new();
+
 	public virtual List<TClient> Clients { get; set; } = new();
+
+	protected virtual void On(byte command, Action<TClient, BinaryReader> handler) {
+
+		TypedHandlers.Add(command, handler);
+
+		On(command, (IWebSocketConnection socket, BinaryReader data) => {
+
+			TClient? client = Clients.FirstOrDefault(client => client.Socket == socket);
+
+			if(client == null) {
+
+				return;
+
+			}
+
+			TypedHandlers[command].Invoke(client, data);
+
+		});
+
+	}
 
 	public override void OnDisconnected(IWebSocketConnection socket) =>
 		Clients.RemoveAll(client => client.Socket == socket);
@@ -18,11 +43,12 @@ public abstract class ControllerBase<TClient> : ControllerBase
 
 public abstract class ControllerBase {
 
-	public virtual Dictionary<short, Action<byte[]>> Handlers { get; set; } = new();
+	public virtual Dictionary<byte, Action<IWebSocketConnection, BinaryReader>> Handlers { get; set; }
+		= new();
 
 	public virtual void Initialize() { }
 
-	protected virtual void On(byte command, Action<byte[]> handler) =>
+	protected virtual void On(byte command, Action<IWebSocketConnection, BinaryReader> handler) =>
 		Handlers.Add(command, handler);
 
 	public virtual void Auth(IWebSocketConnection socket, string message) {
@@ -45,27 +71,9 @@ public abstract class ControllerBase {
 
 	public abstract void OnDisconnected(IWebSocketConnection socket);
 
-	public virtual void Handle(short command, byte[] data/*string command, Func<Type, ITuple?> getData*/) {
+	public virtual void Handle(byte command, IWebSocketConnection socket, BinaryReader data) {
 
-		Action<byte[]>? handler = Handlers.GetValueOrDefault(command);
-
-		if(handler == null) {
-
-			return;
-
-		}
-
-		handler?.DynamicInvoke(data);
-
-		/*Type? messageType = Messages.GetValueOrDefault(command);
-
-		if(messageType == null) {
-
-			return;
-
-		}
-
-		Delegate? handler = Handlers.GetValueOrDefault(messageType);
+		Action<IWebSocketConnection, BinaryReader>? handler = Handlers.GetValueOrDefault(command);
 
 		if(handler == null) {
 
@@ -73,7 +81,7 @@ public abstract class ControllerBase {
 
 		}
 
-		handler?.DynamicInvoke(getData(messageType));*/
+		handler?.Invoke(socket, data);
 
 	}
 

@@ -2,6 +2,8 @@
 
 using SuperShedServerV2.Networking.Controllers;
 
+using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -26,6 +28,9 @@ public class Program {
 		{ "/admin", new AdminController() }
 
 	};
+
+	public static ConcurrentQueue<(IWebSocketConnection, byte[])> MessageQueue { get; set; }
+		= new();
 
 	private static async Task Main(string[] args) {
 
@@ -89,15 +94,36 @@ public class Program {
 				using BinaryReader binaryReader = new(memoryStream);
 
 				byte command = binaryReader.ReadByte();
-				byte[] data = binaryReader.ReadBytes(int.MaxValue);
 
-				FindController()?.Handle(command, data);
+				FindController()?.Handle(command, socket, binaryReader);
 
 			};
 
 		});
 
-		await CommandProcessor.Run();
+		bool shouldClose = false;
+
+		AppDomain.CurrentDomain.ProcessExit += (sender, args) => shouldClose = true;
+
+		while(!shouldClose) {
+
+			if(!MessageQueue.TryDequeue(out (IWebSocketConnection Client, byte[] Data) message)) {
+
+				continue;
+
+			}
+
+			await message.Client.Send(message.Data);
+
+		}
+
+		Output.Log("The server is shutting down >.<");
+
+		while(MessageQueue.TryDequeue(out (IWebSocketConnection Client, byte[] Data) message)) {
+
+			await message.Client.Send(message.Data);
+
+		}
 
 		Dispose();
 

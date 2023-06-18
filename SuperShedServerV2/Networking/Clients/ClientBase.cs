@@ -1,15 +1,14 @@
 ﻿using Fleck;
 
 using System.IO;
-using System.Threading.Tasks;
 
 namespace SuperShedServerV2.Networking.Clients;
 
-public abstract class ClientBase() {
+public abstract class ClientBase {
 
 	public required virtual IWebSocketConnection Socket { get; set; }
 
-	public virtual async Task Send(byte command, params object[] data) {
+	public virtual void Send(byte command, params object[] data) {
 
 		if(!Socket.IsAvailable) {
 
@@ -29,7 +28,7 @@ public abstract class ClientBase() {
 
 		}
 
-		await Socket.Send(memoryStream.ToArray());
+		Program.MessageQueue.Enqueue((Socket, memoryStream.ToArray()));
 
 	}
 

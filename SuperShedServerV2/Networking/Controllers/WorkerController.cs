@@ -64,25 +64,18 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 		if(authRequest.LoginCode != null) {
 
-			if(GlobalState.PendingWorkerAuth == null) {
+			ObjectId? workerId = Program.GetController<AdminController>()
+										.LogWorkerIn(authRequest.LoginCode);
 
-				reject("Failed to authenticate using Login Code: No Worker is pending auth.");
+			if(workerId == null) {
 
-				return;
-
-			}
-
-			if(GlobalState.PendingWorkerAuth.Value.LoginCode.Equals(authRequest.LoginCode)) {
-
-				reject($"Failed to authenticate using Login Code: Provided code is incorrect ({authRequest.LoginCode}).");
+				reject($"Failed to authenticate using Login Code: No pending auth request with this code ({authRequest.LoginCode}).");
 
 				return;
 
 			}
 
-			ObjectId workerId = GlobalState.PendingWorkerAuth.Value.WorkerId;
-
-			Accept(Database.FindOrCreateAuthToken(workerId), workerId);
+			Accept(Database.FindOrCreateAuthToken(workerId.Value), workerId.Value);
 
 			return;
 
