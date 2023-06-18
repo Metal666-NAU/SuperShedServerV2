@@ -185,15 +185,15 @@ public class AdminController : ControllerBase<AdminClient> {
 
 			}
 
-			(string LoginCode, ObjectId WorkerId) workerPendingAuth = adminClient.WorkerPendingAuth.Value;
+			(string LoginCode, ObjectId WorkerId) = adminClient.WorkerPendingAuth.Value;
 
-			if(workerPendingAuth.LoginCode.Equals(loginCode)) {
+			if(!LoginCode.Equals(loginCode)) {
 
 				continue;
 
 			}
 
-			pendingAuth = (adminClient, workerPendingAuth.WorkerId);
+			pendingAuth = (adminClient, WorkerId);
 
 		}
 

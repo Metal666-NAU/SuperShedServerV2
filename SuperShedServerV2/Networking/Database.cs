@@ -73,7 +73,12 @@ public static class Database {
 			token = GenerateAuthToken();
 
 			MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
-							.InsertOne(new(userId, token));
+							.InsertOne(new() {
+
+								UserId = userId,
+								Token = token
+
+							});
 
 		}
 
@@ -97,13 +102,29 @@ public static class Database {
 		public const string AUTH_TOKENS = "auth_tokens";
 		public const string GOODS = "goods";
 
-		public record Worker(string? Name, ObjectId? Id = null) : DatabaseObjectBase(Id);
+		public class Worker : DatabaseObjectBase {
 
-		public record Admin(string? Email, string? Password, ObjectId? Id = null) : DatabaseObjectBase(Id);
+			public virtual string? Name { get; set; }
 
-		public record AuthToken(ObjectId UserId, string? Token, ObjectId? Id = null) : DatabaseObjectBase(Id);
+		}
 
-		public abstract record DatabaseObjectBase(ObjectId? Id = null) {
+		public class Admin : DatabaseObjectBase {
+
+			public virtual string? Email { get; set; }
+			public virtual string? Password { get; set; }
+
+		}
+
+		public class AuthToken : DatabaseObjectBase {
+
+			public virtual ObjectId UserId { get; set; }
+			public virtual string? Token { get; set; }
+
+		}
+
+		public abstract class DatabaseObjectBase {
+
+			public virtual ObjectId Id { get; set; }
 
 			public virtual string StringId => Id.ToString()!;
 
