@@ -8,6 +8,9 @@ public abstract class ClientBase {
 
 	public required virtual IWebSocketConnection Socket { get; set; }
 
+	public virtual void SendPing() =>
+		Send(byte.MaxValue);
+
 	public virtual void Send(byte command, params object[] data) {
 
 		if(!Socket.IsAvailable) {

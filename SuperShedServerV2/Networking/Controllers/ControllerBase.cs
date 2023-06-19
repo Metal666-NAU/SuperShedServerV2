@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text.Json;
+using System.Timers;
 
 namespace SuperShedServerV2.Networking.Controllers;
 
@@ -15,6 +16,33 @@ public abstract class ControllerBase<TClient> : ControllerBase
 		= new();
 
 	public virtual List<TClient> Clients { get; set; } = new();
+
+	public override void Initialize() {
+
+		base.Initialize();
+
+		Timer timer = new() {
+
+			Interval = TimeSpan.FromMinutes(1).TotalMilliseconds,
+			AutoReset = true
+
+		};
+
+		timer.Elapsed += (sender, args) => {
+
+			Output.Log("Pinging clients...");
+
+			foreach(TClient client in Clients) {
+
+				client.SendPing();
+
+			}
+
+		};
+
+		timer.Start();
+
+	}
 
 	protected virtual void On(byte command, Action<TClient, BinaryReader> handler) {
 

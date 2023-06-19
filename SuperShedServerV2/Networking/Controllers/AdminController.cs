@@ -15,6 +15,8 @@ public class AdminController : ControllerBase<AdminClient> {
 
 	public override void Initialize() {
 
+		base.Initialize();
+
 		Output.OnLog += (message, severity) => {
 
 			foreach(AdminClient adminClient in Clients) {
@@ -61,6 +63,40 @@ public class AdminController : ControllerBase<AdminClient> {
 
 		});
 
+		On((byte) Message.UpdateBuilding, (client, data) => {
+
+			string buildingId = data.ReadString();
+			string buildingName = data.ReadString();
+			int buildingWidth = data.ReadInt32();
+			int buildingLength = data.ReadInt32();
+			int buildingHeight = data.ReadInt32();
+
+			Database.UpdateBuilding(new() {
+
+				Id = new(buildingId),
+				Name = buildingName,
+				Size = new() {
+
+					Width = buildingWidth,
+					Height = buildingHeight,
+					Length = buildingLength
+
+				}
+
+			});
+
+			foreach(AdminClient adminClient in Clients) {
+
+				adminClient.SendBuilding(buildingId,
+											buildingName,
+											buildingWidth,
+											buildingLength,
+											buildingHeight);
+
+			}
+
+		});
+
 	}
 
 	protected override void OnAuth(IWebSocketConnection socket, string message, Action<string> reject) {
@@ -100,6 +136,16 @@ public class AdminController : ControllerBase<AdminClient> {
 			foreach((string Message, Output.Severity Severity) log in Output.Logs) {
 
 				adminClient.SendLog(log.Message, log.Severity);
+
+			}
+
+			foreach(Database.Collections.Building building in Database.GetBuildings()) {
+
+				adminClient.SendBuilding(building.StringId,
+											building.Name!,
+											building.Size!.Width,
+											building.Size!.Length,
+											building.Size!.Height);
 
 			}
 
@@ -220,7 +266,8 @@ public class AdminController : ControllerBase<AdminClient> {
 	public enum Message {
 
 		StartWorkerAuth,
-		CancelWorkerAuth
+		CancelWorkerAuth,
+		UpdateBuilding
 
 	}
 

@@ -61,6 +61,17 @@ public static class Database {
 													password.Equals(admin.Password))
 						.FirstOrDefault();
 
+	public static void UpdateBuilding(Collections.Building newBuilding) =>
+		MainDatabase!.GetCollection<Collections.Building>(Collections.BUILDINGS)
+						.ReplaceOne(building =>
+										building.Id.Equals(newBuilding.Id),
+										newBuilding);
+
+	public static List<Collections.Building> GetBuildings() =>
+		MainDatabase!.GetCollection<Collections.Building>(Collections.BUILDINGS)
+						.AsQueryable()
+						.ToList();
+
 	public static string FindOrCreateAuthToken(ObjectId userId) {
 
 		string? token = MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
@@ -100,7 +111,9 @@ public static class Database {
 		public const string WORKERS = "workers";
 		public const string ADMINS = "admins";
 		public const string AUTH_TOKENS = "auth_tokens";
-		public const string GOODS = "goods";
+		public const string PRODUCTS = "products";
+		public const string MANUFACTURERS = "manufacturers";
+		public const string BUILDINGS = "buildings";
 
 		public class Worker : DatabaseObjectBase {
 
@@ -119,6 +132,42 @@ public static class Database {
 
 			public virtual ObjectId UserId { get; set; }
 			public virtual string? Token { get; set; }
+
+		}
+
+		public class Product : DatabaseObjectBase {
+
+			public virtual ObjectId? ManufacturerId { get; set; }
+			public virtual ProductSize? Size { get; set; }
+
+			public class ProductSize {
+
+				public virtual float Width { get; set; }
+				public virtual float Length { get; set; }
+				public virtual float Height { get; set; }
+
+			}
+
+		}
+
+		public class Manufacturer : DatabaseObjectBase {
+
+			public virtual string? Name { get; set; }
+
+		}
+
+		public class Building : DatabaseObjectBase {
+
+			public virtual string? Name { get; set; }
+			public virtual BuildingSize? Size { get; set; }
+
+			public class BuildingSize {
+
+				public virtual int Width { get; set; }
+				public virtual int Length { get; set; }
+				public virtual int Height { get; set; }
+
+			}
 
 		}
 

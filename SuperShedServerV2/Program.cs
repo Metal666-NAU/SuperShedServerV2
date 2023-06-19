@@ -81,7 +81,7 @@ public class Program {
 
 			socket.OnMessage = message => {
 
-				Output.Info($"Received auth message: {message} on {GetPath()}");
+				Output.Log($"Received auth message: {message} on {GetPath()}");
 
 				FindController()?.Auth(socket, message);
 
