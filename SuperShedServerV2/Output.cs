@@ -18,6 +18,8 @@ public static class Output {
 
 	public static void Write(string message, Severity severity) {
 
+		message = $"[{DateTime.Now.TimeOfDay}] {message}";
+
 		Console.ForegroundColor = typeof(Severity).GetMember(severity.ToString())
 													.First()
 													.GetCustomAttribute<SeverityAttribute>()!
