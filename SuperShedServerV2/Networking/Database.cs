@@ -46,9 +46,7 @@ public static class Database {
 						.FirstOrDefault();
 
 	public static List<Collections.Worker> GetWorkers() =>
-		MainDatabase!.GetCollection<Collections.Worker>(Collections.WORKERS)
-						.AsQueryable()
-						.ToList();
+		GetCollection<Collections.Worker>(Collections.WORKERS);
 
 	public static Collections.Admin? GetAdmin(ObjectId adminId) =>
 		MainDatabase!.GetCollection<Collections.Admin>(Collections.ADMINS)
@@ -68,9 +66,34 @@ public static class Database {
 										newBuilding);
 
 	public static List<Collections.Building> GetBuildings() =>
-		MainDatabase!.GetCollection<Collections.Building>(Collections.BUILDINGS)
-						.AsQueryable()
-						.ToList();
+		GetCollection<Collections.Building>(Collections.BUILDINGS);
+
+	public static List<Collections.Rack> GetRacks() =>
+		GetCollection<Collections.Rack>(Collections.RACKS);
+
+	public static Collections.Rack CreateRack(string buildingId) {
+
+		Collections.Rack rack = new() {
+
+			BuildingId = new(buildingId),
+			Position = new(),
+			Size = new() {
+
+				Length = 2,
+				Width = 1
+
+			},
+			Shelves = 3,
+			Spacing = 0.5f
+
+		};
+
+		MainDatabase!.GetCollection<Collections.Rack>(Collections.RACKS)
+						.InsertOne(rack);
+
+		return rack;
+
+	}
 
 	public static string FindOrCreateAuthToken(ObjectId userId) {
 
@@ -103,6 +126,12 @@ public static class Database {
 						.FirstOrDefault()?
 						.UserId;
 
+	private static List<TCollection> GetCollection<TCollection>(string name)
+		where TCollection : Collections.DatabaseObjectBase =>
+		MainDatabase!.GetCollection<TCollection>(name)
+						.AsQueryable()
+						.ToList();
+
 	private static string GenerateAuthToken() =>
 		Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
 
@@ -114,6 +143,7 @@ public static class Database {
 		public const string PRODUCTS = "products";
 		public const string MANUFACTURERS = "manufacturers";
 		public const string BUILDINGS = "buildings";
+		public const string RACKS = "racks";
 
 		public class Worker : DatabaseObjectBase {
 
@@ -166,6 +196,30 @@ public static class Database {
 				public virtual int Width { get; set; }
 				public virtual int Length { get; set; }
 				public virtual int Height { get; set; }
+
+			}
+
+		}
+
+		public class Rack : DatabaseObjectBase {
+
+			public virtual ObjectId? BuildingId { get; set; }
+			public virtual RackPosition? Position { get; set; }
+			public virtual RackSize? Size { get; set; }
+			public virtual int Shelves { get; set; }
+			public virtual float Spacing { get; set; }
+
+			public class RackPosition {
+
+				public virtual int X { get; set; }
+				public virtual int Z { get; set; }
+
+			}
+
+			public class RackSize {
+
+				public virtual int Width { get; set; }
+				public virtual int Length { get; set; }
 
 			}
 

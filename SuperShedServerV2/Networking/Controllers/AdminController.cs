@@ -97,6 +97,27 @@ public class AdminController : ControllerBase<AdminClient> {
 
 		});
 
+		On((byte) Message.CreateRack, (client, data) => {
+
+			string buildingId = data.ReadString();
+
+			Database.Collections.Rack rack = Database.CreateRack(buildingId);
+
+			foreach(AdminClient adminClient in Clients) {
+
+				adminClient.SendRack(rack.StringId,
+										rack.BuildingId!.ToString()!,
+										rack.Position!.X,
+										rack.Position!.Z,
+										rack.Size!.Width,
+										rack.Size!.Length,
+										rack.Shelves,
+										rack.Spacing);
+
+			}
+
+		});
+
 	}
 
 	protected override void OnAuth(IWebSocketConnection socket, string message, Action<string> reject) {
@@ -145,7 +166,19 @@ public class AdminController : ControllerBase<AdminClient> {
 											building.Name!,
 											building.Size!.Width,
 											building.Size!.Length,
-											building.Size!.Height);
+				building.Size!.Height);
+			}
+
+			foreach(Database.Collections.Rack rack in Database.GetRacks()) {
+
+				adminClient.SendRack(rack.StringId,
+										rack.BuildingId!.ToString()!,
+										rack.Position!.X,
+										rack.Position!.Z,
+										rack.Size!.Width,
+										rack.Size!.Length,
+										rack.Shelves,
+										rack.Spacing);
 
 			}
 
@@ -267,7 +300,8 @@ public class AdminController : ControllerBase<AdminClient> {
 
 		StartWorkerAuth,
 		CancelWorkerAuth,
-		UpdateBuilding
+		UpdateBuilding,
+		CreateRack
 
 	}
 

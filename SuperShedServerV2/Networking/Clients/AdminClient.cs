@@ -38,6 +38,17 @@ public class AdminClient : ClientBase {
 		Send((byte) Message.Building,
 				buildingId, buildingName, buildingWidth, buildingLength, buildingHeight);
 
+	public virtual void SendRack(string rackId,
+									string buildingId,
+									int rackX,
+									int rackZ,
+									int rackWidth,
+									int rackLength,
+									int rackShelves,
+									float rackSpacing) =>
+		Send((byte) Message.Rack,
+				rackId, buildingId, rackX, rackZ, rackWidth, rackLength, rackShelves, rackSpacing);
+
 	public enum Message {
 
 		Log,
@@ -45,7 +56,8 @@ public class AdminClient : ClientBase {
 		WorkerStatus,
 		WorkerLoginCode,
 		WorkerAuthSuccess,
-		Building
+		Building,
+		Rack
 
 	}
 
