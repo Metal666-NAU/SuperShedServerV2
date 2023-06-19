@@ -63,6 +63,14 @@ public class AdminController : ControllerBase<AdminClient> {
 
 		});
 
+		On((byte) Message.RevokeWorkerAuth, (client, data) => {
+
+			string workerId = data.ReadString();
+
+			Program.GetController<WorkerController>().RevokeWorkerAuth(workerId);
+
+		});
+
 		On((byte) Message.UpdateBuilding, (client, data) => {
 
 			string buildingId = data.ReadString();
@@ -300,6 +308,7 @@ public class AdminController : ControllerBase<AdminClient> {
 
 		StartWorkerAuth,
 		CancelWorkerAuth,
+		RevokeWorkerAuth,
 		UpdateBuilding,
 		CreateRack
 

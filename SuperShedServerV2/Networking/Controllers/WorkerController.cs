@@ -113,6 +113,14 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 	}
 
+	public virtual void RevokeWorkerAuth(string workerId) {
+
+		Database.DeleteAuthToken(workerId);
+
+		Clients.FirstOrDefault(workerClient => workerClient.Worker.StringId.Equals(workerId))?.Socket.Close();
+
+	}
+
 	public class AuthRequest {
 
 		public virtual string? LoginCode { get; set; }

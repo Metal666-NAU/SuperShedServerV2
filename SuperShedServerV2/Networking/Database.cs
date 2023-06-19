@@ -120,6 +120,11 @@ public static class Database {
 
 	}
 
+	public static void DeleteAuthToken(string userId) =>
+		MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
+						.DeleteMany(authToken =>
+										authToken.UserId.ToString().Equals(userId));
+
 	public static ObjectId? GetUserId(string authToken) =>
 		MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
 						.Find(token => authToken.Equals(token.Token))
