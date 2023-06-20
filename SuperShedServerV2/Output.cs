@@ -12,6 +12,7 @@ public static class Output {
 
 	public static event Action<string, Severity>? OnLog;
 
+	public static void Debug(string message) => Write(message, Severity.Debug);
 	public static void Log(string message) => Write(message, Severity.Log);
 	public static void Info(string message) => Write(message, Severity.Info);
 	public static void Error(string message) => Write(message, Severity.Error);
@@ -42,7 +43,9 @@ public static class Output {
 		[Severity(ConsoleColor.Green)]
 		Info,
 		[Severity(ConsoleColor.Red)]
-		Error
+		Error,
+		[Severity(ConsoleColor.DarkGray)]
+		Debug
 
 	}
 

@@ -30,7 +30,7 @@ public abstract class ControllerBase<TClient> : ControllerBase
 
 		timer.Elapsed += (sender, args) => {
 
-			Output.Log("Pinging clients...");
+			Output.Debug("Pinging clients...");
 
 			foreach(TClient client in Clients) {
 
@@ -81,9 +81,15 @@ public abstract class ControllerBase {
 
 	public virtual void Auth(IWebSocketConnection socket, string message) {
 
-		OnAuth(socket, message, reason => {
+		OnAuth(socket, message, (reason, sensitiveData) => {
 
 			Output.Error(reason);
+
+			if(sensitiveData != null) {
+
+				Output.Debug(sensitiveData);
+
+			}
 
 			socket.Send(JsonSerializer.Serialize(new AuthResponse() {
 
@@ -95,7 +101,7 @@ public abstract class ControllerBase {
 
 	}
 
-	protected abstract void OnAuth(IWebSocketConnection socket, string message, Action<string> reject);
+	protected abstract void OnAuth(IWebSocketConnection socket, string message, Action<string, string?> reject);
 
 	public abstract void OnDisconnected(IWebSocketConnection socket);
 

@@ -45,9 +45,10 @@ public class AdminClient : ClientBase {
 									int rackWidth,
 									int rackLength,
 									int rackShelves,
-									float rackSpacing) =>
+									float rackSpacing,
+									float rotation) =>
 		Send((byte) Message.Rack,
-				rackId, buildingId, rackX, rackZ, rackWidth, rackLength, rackShelves, rackSpacing);
+				rackId, buildingId, rackX, rackZ, rackWidth, rackLength, rackShelves, rackSpacing, rotation);
 
 	public enum Message {
 

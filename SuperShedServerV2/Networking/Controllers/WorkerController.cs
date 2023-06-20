@@ -14,7 +14,33 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 	public event Action<WorkerClient, bool>? WorkerStatusChanged;
 
-	protected override void OnAuth(IWebSocketConnection socket, string message, Action<string> reject) {
+	public override void Initialize() {
+
+		base.Initialize();
+
+		On((byte) Message.ProductInfo, (client, data) => {
+
+			string productId = data.ReadString();
+
+			Database.Collections.Product? product = Database.FindProduct(productId);
+
+			if(product == null) {
+
+				client.SendProductNotFound();
+
+				return;
+
+			}
+
+			Database.Collections.Manufacturer? manufacturer = Database.GetManufacturer(product.ManufacturerId!.Value);
+
+			client.SendProductInfo(manufacturer?.Name ?? "");
+
+		});
+
+	}
+
+	protected override void OnAuth(IWebSocketConnection socket, string message, Action<string, string?> reject) {
 
 		void Accept(string authToken, ObjectId workerId) {
 
@@ -56,7 +82,7 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 		if(authRequest == null) {
 
-			reject($"Failed to parse authentication request ({message})");
+			reject($"Failed to parse authentication request!", message);
 
 			return;
 
@@ -69,7 +95,7 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 			if(workerId == null) {
 
-				reject($"Failed to authenticate using Login Code: No pending auth request with this code ({authRequest.LoginCode}).");
+				reject($"Failed to authenticate using Login Code: No pending auth request with this code!", authRequest.LoginCode);
 
 				return;
 
@@ -89,7 +115,7 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 			if(workerId == null) {
 
-				reject($"Failed to authenticate using Auth Token: Provided token is invalid ({authToken}).");
+				reject($"Failed to authenticate using Auth Token: Provided Token is invalid!", authToken);
 
 				return;
 
@@ -101,7 +127,7 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 		}
 
-		reject("Failed to authenticate: No auth data provided.");
+		reject("Failed to authenticate: No auth data provided!", null);
 
 	}
 
@@ -125,6 +151,14 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 		public virtual string? LoginCode { get; set; }
 		public virtual string? AuthToken { get; set; }
+
+	}
+
+	public enum Message {
+
+		ProductInfo,
+		ShelfInfo,
+		ScanResult
 
 	}
 

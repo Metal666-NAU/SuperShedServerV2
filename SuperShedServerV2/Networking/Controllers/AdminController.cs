@@ -6,6 +6,7 @@ using SuperShedServerV2.Networking.Clients;
 
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Security.Cryptography;
 using System.Text.Json;
 
@@ -18,6 +19,12 @@ public class AdminController : ControllerBase<AdminClient> {
 		base.Initialize();
 
 		Output.OnLog += (message, severity) => {
+
+			if(severity == Output.Severity.Debug) {
+
+				return;
+
+			}
 
 			foreach(AdminClient adminClient in Clients) {
 
@@ -120,7 +127,65 @@ public class AdminController : ControllerBase<AdminClient> {
 										rack.Size!.Width,
 										rack.Size!.Length,
 										rack.Shelves,
-										rack.Spacing);
+										rack.Spacing,
+										rack.Rotation);
+
+			}
+
+		});
+
+		On((byte) Message.UpdateRack, (client, data) => {
+
+			string rackId = data.ReadString();
+			int rackX = data.ReadInt32();
+			int rackZ = data.ReadInt32();
+			int rackWidth = data.ReadInt32();
+			int rackLength = data.ReadInt32();
+			int rackShelves = data.ReadInt32();
+			float rackSpacing = data.ReadSingle();
+			float rackRotation = data.ReadSingle();
+
+			Database.Collections.Rack? rack = Database.FindRack(rackId);
+
+			if(rack == null) {
+
+				Output.Error($"Failed to update Rack: Rack with Id {rackId} doesn't exist!");
+
+				return;
+
+			}
+
+			rack.Position = new() {
+
+				X = rackX,
+				Z = rackZ
+
+			};
+
+			rack.Size = new() {
+
+				Width = rackWidth,
+				Length = rackLength
+
+			};
+
+			rack.Shelves = rackShelves;
+			rack.Spacing = rackSpacing;
+			rack.Rotation = rackRotation;
+
+			Database.UpdateRack(rack);
+
+			foreach(AdminClient adminClient in Clients) {
+
+				adminClient.SendRack(rack.StringId,
+										rack.BuildingId!.ToString()!,
+										rack.Position!.X,
+										rack.Position!.Z,
+										rack.Size!.Width,
+										rack.Size!.Length,
+										rack.Shelves,
+										rack.Spacing,
+										rack.Rotation);
 
 			}
 
@@ -128,7 +193,7 @@ public class AdminController : ControllerBase<AdminClient> {
 
 	}
 
-	protected override void OnAuth(IWebSocketConnection socket, string message, Action<string> reject) {
+	protected override void OnAuth(IWebSocketConnection socket, string message, Action<string, string?> reject) {
 
 		void Accept(string authToken, ObjectId adminId) {
 
@@ -162,7 +227,7 @@ public class AdminController : ControllerBase<AdminClient> {
 
 			}, Program.JSON_SERIALIZER_OPTIONS));
 
-			foreach((string Message, Output.Severity Severity) log in Output.Logs) {
+			foreach((string Message, Output.Severity Severity) log in Output.Logs.Where(log => log.Severity != Output.Severity.Debug)) {
 
 				adminClient.SendLog(log.Message, log.Severity);
 
@@ -186,7 +251,8 @@ public class AdminController : ControllerBase<AdminClient> {
 										rack.Size!.Width,
 										rack.Size!.Length,
 										rack.Shelves,
-										rack.Spacing);
+										rack.Spacing,
+										rack.Rotation);
 
 			}
 
@@ -211,7 +277,7 @@ public class AdminController : ControllerBase<AdminClient> {
 
 		if(authRequest == null) {
 
-			reject($"Failed to parse authentication request ({message})");
+			reject($"Failed to parse authentication request!", message);
 
 			return;
 
@@ -224,7 +290,7 @@ public class AdminController : ControllerBase<AdminClient> {
 
 			if(adminId == null) {
 
-				reject($"Failed to authenticate using Login Credentials: credentials are invalid (Username: {authRequest.Username}, Password: {authRequest.Password}).");
+				reject($"Failed to authenticate using Login Credentials: credentials are invalid!", $"Username: {authRequest.Username}, Password: {authRequest.Password}");
 
 				return;
 
@@ -244,7 +310,7 @@ public class AdminController : ControllerBase<AdminClient> {
 
 			if(adminId == null) {
 
-				reject($"Failed to authenticate using Auth Token: Provided token is invalid ({authToken}).");
+				reject($"Failed to authenticate using Auth Token: Provided Token is invalid!", authToken);
 
 				return;
 
@@ -256,7 +322,7 @@ public class AdminController : ControllerBase<AdminClient> {
 
 		}
 
-		reject("Failed to authenticate: No auth data provided.");
+		reject("Failed to authenticate: No auth data provided!", null);
 
 	}
 
@@ -310,7 +376,8 @@ public class AdminController : ControllerBase<AdminClient> {
 		CancelWorkerAuth,
 		RevokeWorkerAuth,
 		UpdateBuilding,
-		CreateRack
+		CreateRack,
+		UpdateRack
 
 	}
 

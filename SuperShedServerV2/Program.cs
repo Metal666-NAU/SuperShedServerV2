@@ -81,7 +81,8 @@ public class Program {
 
 			socket.OnMessage = message => {
 
-				Output.Log($"Received auth message: {message} on {GetPath()}");
+				Output.Log($"Received auth message from {socket.ConnectionInfo.ClientIpAddress} on {GetPath()}");
+				Output.Debug(message);
 
 				FindController()?.Auth(socket, message);
 

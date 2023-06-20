@@ -59,6 +59,17 @@ public static class Database {
 													password.Equals(admin.Password))
 						.FirstOrDefault();
 
+	public static Collections.Product? FindProduct(string productId) =>
+		MainDatabase!.GetCollection<Collections.Product>(Collections.PRODUCTS)
+						.Find(product => product.Id.ToString().Equals(productId))
+						.FirstOrDefault();
+
+	public static Collections.Manufacturer? GetManufacturer(ObjectId manufacturerId) =>
+		MainDatabase!.GetCollection<Collections.Manufacturer>(Collections.MANUFACTURERS)
+						.Find(manufacturer => manufacturer.Id.Equals(manufacturerId))
+						.FirstOrDefault();
+
+
 	public static void UpdateBuilding(Collections.Building newBuilding) =>
 		MainDatabase!.GetCollection<Collections.Building>(Collections.BUILDINGS)
 						.ReplaceOne(building =>
@@ -67,6 +78,17 @@ public static class Database {
 
 	public static List<Collections.Building> GetBuildings() =>
 		GetCollection<Collections.Building>(Collections.BUILDINGS);
+
+	public static Collections.Rack? FindRack(string rackId) =>
+		MainDatabase!.GetCollection<Collections.Rack>(Collections.RACKS)
+						.Find(rack => rack.Id.ToString() == rackId)
+						.FirstOrDefault();
+
+	public static void UpdateRack(Collections.Rack newRack) =>
+		MainDatabase!.GetCollection<Collections.Rack>(Collections.RACKS)
+						.ReplaceOne(rack =>
+										rack.Id.Equals(newRack.Id),
+										newRack);
 
 	public static List<Collections.Rack> GetRacks() =>
 		GetCollection<Collections.Rack>(Collections.RACKS);
@@ -213,6 +235,7 @@ public static class Database {
 			public virtual RackSize? Size { get; set; }
 			public virtual int Shelves { get; set; }
 			public virtual float Spacing { get; set; }
+			public virtual float Rotation { get; set; }
 
 			public class RackPosition {
 
