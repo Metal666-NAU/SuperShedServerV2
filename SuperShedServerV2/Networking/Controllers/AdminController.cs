@@ -191,6 +191,30 @@ public class AdminController : ControllerBase<AdminClient> {
 
 		});
 
+		On((byte) Message.DeleteRack, (client, data) => {
+
+			string rackId = data.ReadString();
+
+			Database.Collections.Rack? rack = Database.FindRack(rackId);
+
+			if(rack == null) {
+
+				Output.Error("Failed to deleted Rack: Rack not found!");
+
+				return;
+
+			}
+
+			Database.DeleteRack(rack.Id);
+
+			foreach(AdminClient adminClient in Clients) {
+
+				adminClient.SendNoRack(rackId, rack.BuildingId!.ToString()!);
+
+			}
+
+		});
+
 	}
 
 	protected override void OnAuth(IWebSocketConnection socket, string message, Action<string, string?> reject) {
@@ -377,7 +401,8 @@ public class AdminController : ControllerBase<AdminClient> {
 		RevokeWorkerAuth,
 		UpdateBuilding,
 		CreateRack,
-		UpdateRack
+		UpdateRack,
+		DeleteRack
 
 	}
 

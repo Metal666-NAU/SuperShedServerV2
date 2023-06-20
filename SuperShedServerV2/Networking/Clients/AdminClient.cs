@@ -50,6 +50,10 @@ public class AdminClient : ClientBase {
 		Send((byte) Message.Rack,
 				rackId, buildingId, rackX, rackZ, rackWidth, rackLength, rackShelves, rackSpacing, rotation);
 
+	public virtual void SendNoRack(string rackId,
+									string buildingId) =>
+		Send((byte) Message.NoRack, rackId, buildingId);
+
 	public enum Message {
 
 		Log,
@@ -58,7 +62,8 @@ public class AdminClient : ClientBase {
 		WorkerLoginCode,
 		WorkerAuthSuccess,
 		Building,
-		Rack
+		Rack,
+		NoRack
 
 	}
 

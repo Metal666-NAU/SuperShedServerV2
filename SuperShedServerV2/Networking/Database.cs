@@ -117,6 +117,11 @@ public static class Database {
 
 	}
 
+	public static void DeleteRack(ObjectId rackId) =>
+		MainDatabase!.GetCollection<Collections.Rack>(Collections.RACKS)
+						.DeleteMany(rack =>
+										rack.Id.Equals(rackId));
+
 	public static string FindOrCreateAuthToken(ObjectId userId) {
 
 		string? token = MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
