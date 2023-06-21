@@ -32,9 +32,7 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 			}
 
-			Database.Collections.Manufacturer? manufacturer = Database.GetManufacturer(product.ManufacturerId!.Value);
-
-			client.SendProductInfo(manufacturer?.Name ?? "");
+			client.SendProductInfo(product.Manufacturer!);
 
 		});
 

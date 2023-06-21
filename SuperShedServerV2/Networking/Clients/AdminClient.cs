@@ -52,7 +52,22 @@ public class AdminClient : ClientBase {
 
 	public virtual void SendNoRack(string rackId,
 									string buildingId) =>
-		Send((byte) Message.NoRack, rackId, buildingId);
+		Send((byte) Message.NoRack,
+				rackId, buildingId);
+
+	public virtual void SendProduct(string productId,
+									float productWidth,
+									float productLength,
+									float productHeight,
+									string productManufacturer,
+									string rackId,
+									int rackShelf,
+									int rackSpot,
+									string buildingId,
+									string name,
+									string category) =>
+		Send((byte) Message.Product,
+				productId, productWidth, productLength, productHeight, productManufacturer, rackId, rackShelf, rackSpot, buildingId, name, category);
 
 	public enum Message {
 
@@ -63,7 +78,8 @@ public class AdminClient : ClientBase {
 		WorkerAuthSuccess,
 		Building,
 		Rack,
-		NoRack
+		NoRack,
+		Product
 
 	}
 

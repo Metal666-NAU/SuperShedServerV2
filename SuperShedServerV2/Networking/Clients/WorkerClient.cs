@@ -7,8 +7,8 @@ public class WorkerClient : ClientBase {
 	public virtual void SendProductNotFound() =>
 		Send((byte) Message.ProductNotFound);
 
-	public virtual void SendProductInfo(string manufacturerName) =>
-		Send((byte) Message.ProductInfo, manufacturerName);
+	public virtual void SendProductInfo(string manufacturer) =>
+		Send((byte) Message.ProductInfo, manufacturer);
 
 	public enum Message {
 

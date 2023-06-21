@@ -64,12 +64,6 @@ public static class Database {
 						.Find(product => product.Id.ToString().Equals(productId))
 						.FirstOrDefault();
 
-	public static Collections.Manufacturer? GetManufacturer(ObjectId manufacturerId) =>
-		MainDatabase!.GetCollection<Collections.Manufacturer>(Collections.MANUFACTURERS)
-						.Find(manufacturer => manufacturer.Id.Equals(manufacturerId))
-						.FirstOrDefault();
-
-
 	public static void UpdateBuilding(Collections.Building newBuilding) =>
 		MainDatabase!.GetCollection<Collections.Building>(Collections.BUILDINGS)
 						.ReplaceOne(building =>
@@ -122,6 +116,9 @@ public static class Database {
 						.DeleteMany(rack =>
 										rack.Id.Equals(rackId));
 
+	public static List<Collections.Product> GetProducts() =>
+		GetCollection<Collections.Product>(Collections.PRODUCTS);
+
 	public static string FindOrCreateAuthToken(ObjectId userId) {
 
 		string? token = MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
@@ -173,7 +170,6 @@ public static class Database {
 		public const string ADMINS = "admins";
 		public const string AUTH_TOKENS = "auth_tokens";
 		public const string PRODUCTS = "products";
-		public const string MANUFACTURERS = "manufacturers";
 		public const string BUILDINGS = "buildings";
 		public const string RACKS = "racks";
 
@@ -199,22 +195,27 @@ public static class Database {
 
 		public class Product : DatabaseObjectBase {
 
-			public virtual ObjectId? ManufacturerId { get; set; }
 			public virtual ProductSize? Size { get; set; }
+			public virtual string? Manufacturer { get; set; }
+			public virtual ObjectId? RackId { get; set; }
+			public virtual ProductPosition? Position { get; set; }
+			public virtual string? Name { get; set; }
+			public virtual string? Category { get; set; }
 
 			public class ProductSize {
 
-				public virtual float Width { get; set; }
-				public virtual float Length { get; set; }
-				public virtual float Height { get; set; }
+				public virtual double Width { get; set; }
+				public virtual double Length { get; set; }
+				public virtual double Height { get; set; }
 
 			}
 
-		}
+			public class ProductPosition {
 
-		public class Manufacturer : DatabaseObjectBase {
+				public virtual int Shelf { get; set; }
+				public virtual int Spot { get; set; }
 
-			public virtual string? Name { get; set; }
+			}
 
 		}
 
@@ -239,8 +240,8 @@ public static class Database {
 			public virtual RackPosition? Position { get; set; }
 			public virtual RackSize? Size { get; set; }
 			public virtual int Shelves { get; set; }
-			public virtual float Spacing { get; set; }
-			public virtual float Rotation { get; set; }
+			public virtual double Spacing { get; set; }
+			public virtual double Rotation { get; set; }
 
 			public class RackPosition {
 

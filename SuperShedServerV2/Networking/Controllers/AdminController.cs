@@ -102,6 +102,12 @@ public class AdminController : ControllerBase<AdminClient> {
 
 			foreach(AdminClient adminClient in Clients) {
 
+				if(adminClient == client) {
+
+					continue;
+
+				}
+
 				adminClient.SendBuilding(buildingId,
 											buildingName,
 											buildingWidth,
@@ -127,8 +133,8 @@ public class AdminController : ControllerBase<AdminClient> {
 										rack.Size!.Width,
 										rack.Size!.Length,
 										rack.Shelves,
-										rack.Spacing,
-										rack.Rotation);
+										(float) rack.Spacing,
+										(float) rack.Rotation);
 
 			}
 
@@ -184,8 +190,8 @@ public class AdminController : ControllerBase<AdminClient> {
 										rack.Size!.Width,
 										rack.Size!.Length,
 										rack.Shelves,
-										rack.Spacing,
-										rack.Rotation);
+										(float) rack.Spacing,
+										(float) rack.Rotation);
 
 			}
 
@@ -266,17 +272,42 @@ public class AdminController : ControllerBase<AdminClient> {
 				building.Size!.Height);
 			}
 
+			Dictionary<string, string> rackIdToBuildingId = new();
+
 			foreach(Database.Collections.Rack rack in Database.GetRacks()) {
 
-				adminClient.SendRack(rack.StringId,
-										rack.BuildingId!.ToString()!,
+				string rackId = rack.StringId;
+				string buildingId = rack.BuildingId!.ToString()!;
+
+				rackIdToBuildingId[rackId] = buildingId;
+
+				adminClient.SendRack(rackId,
+										buildingId,
 										rack.Position!.X,
 										rack.Position!.Z,
 										rack.Size!.Width,
 										rack.Size!.Length,
 										rack.Shelves,
-										rack.Spacing,
-										rack.Rotation);
+										(float) rack.Spacing,
+										(float) rack.Rotation);
+
+			}
+
+			foreach(Database.Collections.Product product in Database.GetProducts()) {
+
+				string rackId = product.RackId.ToString()!;
+
+				adminClient.SendProduct(product.StringId,
+										(float) product.Size!.Width,
+										(float) product.Size!.Length,
+										(float) product.Size!.Height,
+										product.Manufacturer!,
+										rackId,
+										product.Position!.Shelf,
+										product.Position!.Spot,
+										rackIdToBuildingId[rackId],
+										product.Name!,
+										product.Category!);
 
 			}
 
