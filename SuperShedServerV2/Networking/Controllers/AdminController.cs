@@ -417,6 +417,38 @@ public class AdminController : ControllerBase<AdminClient> {
 
 	}
 
+	public virtual void ProductUpdated(Database.Collections.Product product) {
+
+		string rackId = product.RackId.ToString()!;
+
+		Database.Collections.Rack? productRack = Database.FindRack(rackId);
+
+		if(productRack == null) {
+
+			Output.Error("Failed to send Product update: product Rack not found!");
+
+			return;
+
+		}
+
+		foreach(AdminClient client in Clients) {
+
+			client.SendProduct(product.StringId,
+								(float) product.Size!.Width,
+								(float) product.Size!.Length,
+								(float) product.Size!.Height,
+								product.Manufacturer!,
+								rackId,
+								product.Position!.Shelf,
+								product.Position!.Spot,
+								productRack.BuildingId.ToString()!,
+								product.Name!,
+								product.Category!);
+
+		}
+
+	}
+
 	public class AuthRequest {
 
 		public virtual string? Username { get; set; }

@@ -4,17 +4,20 @@ public class WorkerClient : ClientBase {
 
 	public required virtual Database.Collections.Worker Worker { get; set; }
 
-	public virtual void SendProductNotFound() =>
-		Send((byte) Message.ProductNotFound);
-
-	public virtual void SendProductInfo(string manufacturer) =>
-		Send((byte) Message.ProductInfo, manufacturer);
+	public virtual void SendProductInfo(float productWidth,
+										float productHeight,
+										float productLength,
+										string productManufacturer,
+										string rackId,
+										int productShelf,
+										int productSpot,
+										string productCategory,
+										string productName) =>
+		Send((byte) Message.ProductInfo, productWidth, productHeight, productLength, productManufacturer, rackId, productShelf, productSpot, productCategory, productName);
 
 	public enum Message {
 
-		ProductNotFound,
-		ProductInfo,
-		ShelfInfo
+		ProductInfo
 
 	}
 

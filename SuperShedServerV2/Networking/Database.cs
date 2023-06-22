@@ -64,6 +64,15 @@ public static class Database {
 						.Find(product => product.Id.ToString().Equals(productId))
 						.FirstOrDefault();
 
+	public static void UpdateProduct(Collections.Product newProduct) =>
+		MainDatabase!.GetCollection<Collections.Product>(Collections.PRODUCTS)
+						.ReplaceOne(product =>
+										product.Id.Equals(newProduct.Id),
+										newProduct);
+
+	public static List<Collections.Product> GetProducts() =>
+		GetCollection<Collections.Product>(Collections.PRODUCTS);
+
 	public static void UpdateBuilding(Collections.Building newBuilding) =>
 		MainDatabase!.GetCollection<Collections.Building>(Collections.BUILDINGS)
 						.ReplaceOne(building =>
@@ -115,9 +124,6 @@ public static class Database {
 		MainDatabase!.GetCollection<Collections.Rack>(Collections.RACKS)
 						.DeleteMany(rack =>
 										rack.Id.Equals(rackId));
-
-	public static List<Collections.Product> GetProducts() =>
-		GetCollection<Collections.Product>(Collections.PRODUCTS);
 
 	public static string FindOrCreateAuthToken(ObjectId userId) {
 

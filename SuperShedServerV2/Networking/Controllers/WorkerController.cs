@@ -18,7 +18,7 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 		base.Initialize();
 
-		On((byte) Message.ProductInfo, (client, data) => {
+		On((byte) Message.GetProductInfo, (client, data) => {
 
 			string productId = data.ReadString();
 
@@ -26,13 +26,72 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 			if(product == null) {
 
-				client.SendProductNotFound();
+				Output.Error($"Failed to send Product to Worker: Product with Id {productId} doesn't exist!");
 
 				return;
 
 			}
 
-			client.SendProductInfo(product.Manufacturer!);
+			client.SendProductInfo((float) product.Size!.Width,
+									(float) product.Size!.Height,
+									(float) product.Size!.Length,
+									product.Manufacturer!,
+									product.RackId.ToString()!,
+									product.Position!.Shelf,
+									product.Position!.Spot,
+									product.Category!,
+									product.Name!);
+
+		});
+
+		On((byte) Message.UpdateProductInfo, (client, data) => {
+
+			string productId = data.ReadString();
+			float productWidth = data.ReadSingle();
+			float productLength = data.ReadSingle();
+			float productHeight = data.ReadSingle();
+			string productManufacturer = data.ReadString();
+			string rackId = data.ReadString();
+			int productShelf = data.ReadInt32();
+			int productSpot = data.ReadInt32();
+			string productCategory = data.ReadString();
+			string productName = data.ReadString();
+
+			Database.Collections.Product? product = Database.FindProduct(productId);
+
+			if(product == null) {
+
+				Output.Error($"Failed to update Product: Product with Id {productId} doesn't exist!");
+
+				return;
+
+			}
+
+			product.Size = new() {
+
+				Width = productWidth,
+				Length = productLength,
+				Height = productHeight
+
+			};
+
+			product.Manufacturer = productManufacturer;
+			product.RackId = new(rackId);
+
+			product.Position = new() {
+
+				Shelf = productShelf,
+				Spot = productSpot
+
+			};
+
+			product.Category = productCategory;
+
+			product.Name = productName;
+
+			Database.UpdateProduct(product);
+
+			Program.GetController<AdminController>().ProductUpdated(product);
 
 		});
 
@@ -154,9 +213,8 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 	public enum Message {
 
-		ProductInfo,
-		ShelfInfo,
-		ScanResult
+		GetProductInfo,
+		UpdateProductInfo
 
 	}
 
