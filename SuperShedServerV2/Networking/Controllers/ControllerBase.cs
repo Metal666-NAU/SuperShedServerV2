@@ -12,10 +12,11 @@ namespace SuperShedServerV2.Networking.Controllers;
 public abstract class ControllerBase<TClient> : ControllerBase
 	where TClient : Clients.ClientBase {
 
-	public virtual Dictionary<byte, Action<TClient, BinaryReader>> TypedHandlers { get; set; }
-		= new();
+	public virtual Dictionary<byte, Action<TClient, BinaryReader>> TypedHandlers { get; set; } =
+		[];
 
-	public virtual List<TClient> Clients { get; set; } = new();
+	public virtual List<TClient> Clients { get; set; } =
+		[];
 
 	public override void Initialize() {
 
@@ -71,8 +72,8 @@ public abstract class ControllerBase<TClient> : ControllerBase
 
 public abstract class ControllerBase {
 
-	public virtual Dictionary<byte, Action<IWebSocketConnection, BinaryReader>> Handlers { get; set; }
-		= new();
+	public virtual Dictionary<byte, Action<IWebSocketConnection, BinaryReader>> Handlers { get; set; } =
+		[];
 
 	public virtual void Initialize() { }
 
@@ -81,23 +82,25 @@ public abstract class ControllerBase {
 
 	public virtual void Auth(IWebSocketConnection socket, string message) {
 
-		OnAuth(socket, message, (reason, sensitiveData) => {
+		OnAuth(socket,
+				message,
+				(reason, sensitiveData) => {
 
-			Output.Error(reason);
+					Output.Error(reason);
 
-			if(sensitiveData != null) {
+					if(sensitiveData != null) {
 
-				Output.Debug(sensitiveData);
+						Output.Debug(sensitiveData);
 
-			}
+					}
 
-			socket.Send(JsonSerializer.Serialize(new AuthResponse() {
+					socket.Send(JsonSerializer.Serialize(new AuthResponse() {
 
-				Success = false
+						Success = false
 
-			}, Program.JSON_SERIALIZER_OPTIONS));
+					}, Program.JsonSerializerOptions));
 
-		});
+				});
 
 	}
 

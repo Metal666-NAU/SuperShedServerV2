@@ -1,5 +1,6 @@
 ﻿using Fleck;
 
+using SuperShedServerV2.Networking;
 using SuperShedServerV2.Networking.Controllers;
 
 using System;
@@ -14,7 +15,7 @@ namespace SuperShedServerV2;
 
 public class Program {
 
-	public static readonly JsonSerializerOptions JSON_SERIALIZER_OPTIONS = new() {
+	public static readonly JsonSerializerOptions JsonSerializerOptions = new() {
 
 		PropertyNamingPolicy = JsonNamingPolicy.CamelCase,
 
@@ -29,10 +30,10 @@ public class Program {
 
 	};
 
-	public static ConcurrentQueue<(IWebSocketConnection, byte[])> MessageQueue { get; set; }
-		= new();
+	public static ConcurrentQueue<(IWebSocketConnection, byte[])> MessageQueue { get; set; } =
+		new();
 
-	private static async Task Main(string[] args) {
+	private static async Task Main() {
 
 		Output.Log("The server is running :3");
 
@@ -70,14 +71,16 @@ public class Program {
 
 			}
 
-			socket.OnOpen = () => Output.Info($"New client connected: {socket.ConnectionInfo.ClientIpAddress} -> {GetPath()}");
-			socket.OnClose = () => {
+			socket.OnOpen =
+				() => Output.Info($"New client connected: {socket.ConnectionInfo.ClientIpAddress} -> {GetPath()}");
+			socket.OnClose =
+				() => {
 
-				Output.Info($"Client disconnected: {socket.ConnectionInfo.ClientIpAddress}");
+					Output.Info($"Client disconnected: {socket.ConnectionInfo.ClientIpAddress}");
 
-				FindController()?.OnDisconnected(socket);
+					FindController()?.OnDisconnected(socket);
 
-			};
+				};
 
 			socket.OnMessage = message => {
 
@@ -91,7 +94,6 @@ public class Program {
 			socket.OnBinary = message => {
 
 				using MemoryStream memoryStream = new(message);
-
 				using BinaryReader binaryReader = new(memoryStream);
 
 				byte command = binaryReader.ReadByte();
@@ -104,7 +106,8 @@ public class Program {
 
 		bool shouldClose = false;
 
-		AppDomain.CurrentDomain.ProcessExit += (sender, args) => shouldClose = true;
+		AppDomain.CurrentDomain.ProcessExit +=
+			(sender, args) => shouldClose = true;
 
 		while(!shouldClose) {
 
@@ -130,12 +133,23 @@ public class Program {
 
 	}
 
-	public static TController GetController<TController>() where TController : ControllerBase =>
-		Controllers.Values.OfType<TController>().Single();
+	public static TController GetController<TController>()
+		where TController : ControllerBase =>
+			Controllers.Values
+						.OfType<TController>()
+						.Single();
 
 	public static void Dispose() {
 
-		Server!.Dispose();
+		if(Server == null) {
+
+			Output.Error("Failed to dispose server: server was not initialized!");
+
+			return;
+
+		}
+
+		Server.Dispose();
 
 	}
 
@@ -147,8 +161,10 @@ public class Program {
 			public virtual string? Username { get; set; }
 			public virtual string? Password { get; set; }
 
-			public virtual bool HasToken => LoginToken != null;
-			public virtual bool HasCredentials => Username != null && Password != null;
+			public virtual bool HasToken =>
+				LoginToken != null;
+			public virtual bool HasCredentials =>
+				Username != null && Password != null;
 
 		}
 

@@ -8,7 +8,7 @@ namespace SuperShedServerV2;
 public static class Output {
 
 	public static List<(string Message, Severity Severity)> Logs { get; set; } =
-		new();
+		[];
 
 	public static event Action<string, Severity>? OnLog;
 
@@ -21,10 +21,11 @@ public static class Output {
 
 		message = $"[{DateTime.Now.TimeOfDay}] {message}";
 
-		Console.ForegroundColor = typeof(Severity).GetMember(severity.ToString())
-													.First()
-													.GetCustomAttribute<SeverityAttribute>()!
-													.Color;
+		Console.ForegroundColor =
+			typeof(Severity).GetMember(severity.ToString())
+							.First()
+							.GetCustomAttribute<SeverityAttribute>()!
+							.Color;
 
 		Console.WriteLine(message);
 

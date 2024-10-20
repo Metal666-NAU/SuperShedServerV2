@@ -6,13 +6,17 @@ using System;
 using System.Collections.Generic;
 using System.Security.Cryptography;
 
-namespace SuperShedServerV2;
+namespace SuperShedServerV2.Networking;
 
 public static class Database {
 
-	public static MongoClient? MongoClient { get; set; }
+	public const string DbUriEnvVariable = "SUPERSHED_MONGODB_URI";
 
-	public static IMongoDatabase? MainDatabase { get; set; }
+#nullable disable
+	public static MongoClient MongoClient { get; set; }
+
+	public static IMongoDatabase MainDatabase { get; set; }
+#nullable enable
 
 	public static bool Initialize() {
 
@@ -22,11 +26,11 @@ public static class Database {
 
 		}, type => true);
 
-		string? connectionString = Environment.GetEnvironmentVariable("SUPERSHED_MONGODB_URI");
+		string? connectionString = Environment.GetEnvironmentVariable(DbUriEnvVariable);
 
 		if(connectionString == null) {
 
-			Output.Error("SUPERSHED_MONGODB_URI environment variable not set!");
+			Output.Error($"{DbUriEnvVariable} environment variable not set!");
 
 			return false;
 
@@ -41,57 +45,62 @@ public static class Database {
 	}
 
 	public static Collections.Worker? GetWorker(ObjectId workerId) =>
-		MainDatabase!.GetCollection<Collections.Worker>(Collections.WORKERS)
-						.Find(worker => worker.Id == workerId)
-						.FirstOrDefault();
+		MainDatabase.GetCollection<Collections.Worker>(Collections.WORKERS)
+					.Find(worker => worker.Id == workerId)
+					.FirstOrDefault();
 
 	public static List<Collections.Worker> GetWorkers() =>
 		GetCollection<Collections.Worker>(Collections.WORKERS);
 
 	public static Collections.Admin? GetAdmin(ObjectId adminId) =>
-		MainDatabase!.GetCollection<Collections.Admin>(Collections.ADMINS)
-						.Find(admin => admin.Id == adminId)
-						.FirstOrDefault();
+		MainDatabase.GetCollection<Collections.Admin>(Collections.ADMINS)
+					.Find(admin => admin.Id == adminId)
+					.FirstOrDefault();
 
-	public static Collections.Admin? GetAdmin(string email, string password) =>
-		MainDatabase!.GetCollection<Collections.Admin>(Collections.ADMINS)
-						.Find(admin => email.Equals(admin.Email) &&
-													password.Equals(admin.Password))
-						.FirstOrDefault();
+	public static Collections.Admin? GetAdmin(string username, string password) =>
+		MainDatabase.GetCollection<Collections.Admin>(Collections.ADMINS)
+					.Find(admin =>
+									username.Equals(admin.Username) &&
+									password.Equals(admin.Password))
+					.FirstOrDefault();
 
 	public static Collections.Product? FindProduct(string productId) =>
-		MainDatabase!.GetCollection<Collections.Product>(Collections.PRODUCTS)
-						.Find(product => product.Id.ToString().Equals(productId))
-						.FirstOrDefault();
+		MainDatabase.GetCollection<Collections.Product>(Collections.PRODUCTS)
+					.Find(product =>
+									product.Id
+											.ToString()
+											.Equals(productId))
+					.FirstOrDefault();
 
 	public static void UpdateProduct(Collections.Product newProduct) =>
-		MainDatabase!.GetCollection<Collections.Product>(Collections.PRODUCTS)
-						.ReplaceOne(product =>
+		MainDatabase.GetCollection<Collections.Product>(Collections.PRODUCTS)
+					.ReplaceOne(product =>
 										product.Id.Equals(newProduct.Id),
-										newProduct);
+								newProduct);
 
 	public static List<Collections.Product> GetProducts() =>
 		GetCollection<Collections.Product>(Collections.PRODUCTS);
 
 	public static void UpdateBuilding(Collections.Building newBuilding) =>
-		MainDatabase!.GetCollection<Collections.Building>(Collections.BUILDINGS)
-						.ReplaceOne(building =>
+		MainDatabase.GetCollection<Collections.Building>(Collections.BUILDINGS)
+					.ReplaceOne(building =>
 										building.Id.Equals(newBuilding.Id),
-										newBuilding);
+								newBuilding);
 
 	public static List<Collections.Building> GetBuildings() =>
 		GetCollection<Collections.Building>(Collections.BUILDINGS);
 
 	public static Collections.Rack? FindRack(string rackId) =>
-		MainDatabase!.GetCollection<Collections.Rack>(Collections.RACKS)
-						.Find(rack => rack.Id.ToString() == rackId)
-						.FirstOrDefault();
+		MainDatabase.GetCollection<Collections.Rack>(Collections.RACKS)
+					.Find(rack =>
+									rack.Id.ToString() == rackId)
+					.FirstOrDefault();
 
 	public static void UpdateRack(Collections.Rack newRack) =>
-		MainDatabase!.GetCollection<Collections.Rack>(Collections.RACKS)
-						.ReplaceOne(rack =>
+		MainDatabase.GetCollection<Collections.Rack>(Collections.RACKS)
+					.ReplaceOne(rack =>
 										rack.Id.Equals(newRack.Id),
-										newRack);
+								newRack);
 
 	public static List<Collections.Rack> GetRacks() =>
 		GetCollection<Collections.Rack>(Collections.RACKS);
@@ -113,36 +122,37 @@ public static class Database {
 
 		};
 
-		MainDatabase!.GetCollection<Collections.Rack>(Collections.RACKS)
-						.InsertOne(rack);
+		MainDatabase.GetCollection<Collections.Rack>(Collections.RACKS)
+					.InsertOne(rack);
 
 		return rack;
 
 	}
 
 	public static void DeleteRack(ObjectId rackId) =>
-		MainDatabase!.GetCollection<Collections.Rack>(Collections.RACKS)
-						.DeleteMany(rack =>
+		MainDatabase.GetCollection<Collections.Rack>(Collections.RACKS)
+					.DeleteMany(rack =>
 										rack.Id.Equals(rackId));
 
 	public static string FindOrCreateAuthToken(ObjectId userId) {
 
-		string? token = MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
-										.Find(authToken => authToken.UserId.Equals(userId))
-										.FirstOrDefault()?
-										.Token;
+		string? token =
+			MainDatabase.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
+						.Find(authToken => authToken.UserId.Equals(userId))
+						.FirstOrDefault()?
+						.Token;
 
 		if(token == null) {
 
 			token = GenerateAuthToken();
 
-			MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
-							.InsertOne(new() {
+			MainDatabase.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
+						.InsertOne(new() {
 
-								UserId = userId,
-								Token = token
+							UserId = userId,
+							Token = token
 
-							});
+						});
 
 		}
 
@@ -151,21 +161,21 @@ public static class Database {
 	}
 
 	public static void DeleteAuthToken(string userId) =>
-		MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
-						.DeleteMany(authToken =>
-										authToken.UserId.ToString().Equals(userId));
+		MainDatabase.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
+					.DeleteMany(authToken =>
+										authToken.UserId
+													.ToString()
+													.Equals(userId));
 
 	public static ObjectId? GetUserId(string authToken) =>
-		MainDatabase!.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
-						.Find(token => authToken.Equals(token.Token))
-						.FirstOrDefault()?
-						.UserId;
+		MainDatabase.GetCollection<Collections.AuthToken>(Collections.AUTH_TOKENS)
+					.Find(token => authToken.Equals(token.Token))
+					.FirstOrDefault()?
+					.UserId;
 
 	private static List<TCollection> GetCollection<TCollection>(string name)
 		where TCollection : Collections.DatabaseObjectBase =>
-		MainDatabase!.GetCollection<TCollection>(name)
-						.AsQueryable()
-						.ToList();
+			[.. MainDatabase.GetCollection<TCollection>(name).AsQueryable()];
 
 	private static string GenerateAuthToken() =>
 		Convert.ToBase64String(RandomNumberGenerator.GetBytes(64));
@@ -187,7 +197,7 @@ public static class Database {
 
 		public class Admin : DatabaseObjectBase {
 
-			public virtual string? Email { get; set; }
+			public virtual string? Username { get; set; }
 			public virtual string? Password { get; set; }
 
 		}

@@ -18,86 +18,90 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 		base.Initialize();
 
-		On((byte) Message.GetProductInfo, (client, data) => {
+		On((byte) Message.GetProductInfo,
+			(client, data) => {
 
-			string productId = data.ReadString();
+				string productId = data.ReadString();
 
-			Database.Collections.Product? product = Database.FindProduct(productId);
+				Database.Collections.Product? product = Database.FindProduct(productId);
 
-			if(product == null) {
+				if(product == null) {
 
-				Output.Error($"Failed to send Product to Worker: Product with Id {productId} doesn't exist!");
+					Output.Error($"Failed to send Product to Worker: Product with Id {productId} doesn't exist!");
 
-				return;
+					return;
 
-			}
+				}
 
-			client.SendProductInfo((float) product.Size!.Width,
-									(float) product.Size!.Height,
-									(float) product.Size!.Length,
-									product.Manufacturer!,
-									product.RackId.ToString()!,
-									product.Position!.Shelf,
-									product.Position!.Spot,
-									product.Category!,
-									product.Name!);
+				client.SendProductInfo((float) product.Size!.Width,
+										(float) product.Size!.Length,
+										(float) product.Size!.Height,
+										product.Manufacturer!,
+										product.RackId.ToString()!,
+										product.Position!.Shelf,
+										product.Position!.Spot,
+										product.Category!,
+										product.Name!);
 
-		});
+			});
 
-		On((byte) Message.UpdateProductInfo, (client, data) => {
+		On((byte) Message.UpdateProductInfo,
+			(client, data) => {
 
-			string productId = data.ReadString();
-			float productWidth = data.ReadSingle();
-			float productLength = data.ReadSingle();
-			float productHeight = data.ReadSingle();
-			string productManufacturer = data.ReadString();
-			string rackId = data.ReadString();
-			int productShelf = data.ReadInt32();
-			int productSpot = data.ReadInt32();
-			string productCategory = data.ReadString();
-			string productName = data.ReadString();
+				string productId = data.ReadString();
+				float productWidth = data.ReadSingle();
+				float productLength = data.ReadSingle();
+				float productHeight = data.ReadSingle();
+				string productManufacturer = data.ReadString();
+				string rackId = data.ReadString();
+				int productShelf = data.ReadInt32();
+				int productSpot = data.ReadInt32();
+				string productCategory = data.ReadString();
+				string productName = data.ReadString();
 
-			Database.Collections.Product? product = Database.FindProduct(productId);
+				Database.Collections.Product? product = Database.FindProduct(productId);
 
-			if(product == null) {
+				if(product == null) {
 
-				Output.Error($"Failed to update Product: Product with Id {productId} doesn't exist!");
+					Output.Error($"Failed to update Product: Product with Id {productId} doesn't exist!");
 
-				return;
+					return;
 
-			}
+				}
 
-			product.Size = new() {
+				product.Size = new() {
 
-				Width = productWidth,
-				Length = productLength,
-				Height = productHeight
+					Width = productWidth,
+					Length = productLength,
+					Height = productHeight
 
-			};
+				};
 
-			product.Manufacturer = productManufacturer;
-			product.RackId = new(rackId);
+				product.Manufacturer = productManufacturer;
+				product.RackId = new(rackId);
 
-			product.Position = new() {
+				product.Position = new() {
 
-				Shelf = productShelf,
-				Spot = productSpot
+					Shelf = productShelf,
+					Spot = productSpot
 
-			};
+				};
 
-			product.Category = productCategory;
+				product.Category = productCategory;
 
-			product.Name = productName;
+				product.Name = productName;
 
-			Database.UpdateProduct(product);
+				Database.UpdateProduct(product);
 
-			Program.GetController<AdminController>().ProductUpdated(product);
+				Program.GetController<AdminController>().ProductUpdated(product);
 
-		});
+			});
 
 	}
 
-	protected override void OnAuth(IWebSocketConnection socket, string message, Action<string, string?> reject) {
+	protected override void OnAuth(IWebSocketConnection socket,
+									string message,
+									Action<string, string?> reject) {
 
 		void Accept(string authToken, ObjectId workerId) {
 
@@ -129,13 +133,14 @@ public class WorkerController : ControllerBase<WorkerClient> {
 				Success = true,
 				AuthToken = authToken
 
-			}, Program.JSON_SERIALIZER_OPTIONS));
+			}, Program.JsonSerializerOptions));
 
 			WorkerStatusChanged?.Invoke(workerClient, true);
 
 		}
 
-		AuthRequest? authRequest = JsonSerializer.Deserialize<AuthRequest>(message, Program.JSON_SERIALIZER_OPTIONS);
+		AuthRequest? authRequest =
+			JsonSerializer.Deserialize<AuthRequest>(message, Program.JsonSerializerOptions);
 
 		if(authRequest == null) {
 
@@ -147,8 +152,9 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 		if(authRequest.LoginCode != null) {
 
-			ObjectId? workerId = Program.GetController<AdminController>()
-										.LogWorkerIn(authRequest.LoginCode);
+			ObjectId? workerId =
+				Program.GetController<AdminController>()
+						.LogWorkerIn(authRequest.LoginCode);
 
 			if(workerId == null) {
 
@@ -190,7 +196,16 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 	public override void OnDisconnected(IWebSocketConnection socket) {
 
-		WorkerStatusChanged?.Invoke(Clients.Single(workerClient => workerClient.Socket == socket), false);
+		WorkerClient? disconnectedClient =
+			Clients.FirstOrDefault(workerClient =>
+												workerClient.Socket == socket);
+
+		if(disconnectedClient != null) {
+
+			WorkerStatusChanged?.Invoke(disconnectedClient,
+										false);
+
+		}
 
 		base.OnDisconnected(socket);
 
@@ -200,7 +215,12 @@ public class WorkerController : ControllerBase<WorkerClient> {
 
 		Database.DeleteAuthToken(workerId);
 
-		Clients.FirstOrDefault(workerClient => workerClient.Worker.StringId.Equals(workerId))?.Socket.Close();
+		Clients.FirstOrDefault(workerClient =>
+											workerClient.Worker
+														.StringId
+														.Equals(workerId))?
+														.Socket
+														.Close();
 
 	}
 

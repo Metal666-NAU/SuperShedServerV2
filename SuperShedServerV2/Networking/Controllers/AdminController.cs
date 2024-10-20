@@ -34,196 +34,209 @@ public class AdminController : ControllerBase<AdminClient> {
 
 		};
 
-		Program.GetController<WorkerController>().WorkerStatusChanged += (workerClient, online) => {
+		Program.GetController<WorkerController>()
+				.WorkerStatusChanged +=
+			(workerClient, online) => {
 
-			foreach(AdminClient adminClient in Clients) {
+				foreach(AdminClient adminClient in Clients) {
 
-				adminClient.SendWorkerStatus(workerClient.Worker.StringId, online);
+					adminClient.SendWorkerStatus(workerClient.Worker.StringId, online);
 
-			}
+				}
 
-		};
+			};
 
-		On((byte) Message.StartWorkerAuth, (client, data) => {
+		On((byte) Message.StartWorkerAuth,
+			(client, data) => {
 
-			ObjectId workerId = new(data.ReadString());
+				ObjectId workerId = new(data.ReadString());
 
-			List<string> loginCodeCharacters = new();
+				List<string> loginCodeCharacters = [];
 
-			for(int i = 0; i < 6; i++) {
+				for(int i = 0; i < 6; i++) {
 
-				loginCodeCharacters.Add(RandomNumberGenerator.GetInt32(10).ToString());
+					loginCodeCharacters.Add(RandomNumberGenerator.GetInt32(10).ToString());
 
-			}
+				}
 
-			string loginCode = string.Join("", loginCodeCharacters);
+				string loginCode = string.Join("", loginCodeCharacters);
 
-			client.WorkerPendingAuth = (loginCode, workerId);
+				client.WorkerPendingAuth = (loginCode, workerId);
 
-			client.SendWorkerLoginCode(loginCode);
+				client.SendWorkerLoginCode(loginCode);
 
-		});
+			});
 
-		On((byte) Message.CancelWorkerAuth, (client, data) => {
+		On((byte) Message.CancelWorkerAuth,
+			(client, data) => {
 
-			client.WorkerPendingAuth = null;
+				client.WorkerPendingAuth = null;
 
-		});
+			});
 
-		On((byte) Message.RevokeWorkerAuth, (client, data) => {
+		On((byte) Message.RevokeWorkerAuth,
+			(client, data) => {
 
-			string workerId = data.ReadString();
+				string workerId = data.ReadString();
 
-			Program.GetController<WorkerController>().RevokeWorkerAuth(workerId);
+				Program.GetController<WorkerController>().RevokeWorkerAuth(workerId);
 
-		});
+			});
 
-		On((byte) Message.UpdateBuilding, (client, data) => {
+		On((byte) Message.UpdateBuilding,
+			(client, data) => {
 
-			string buildingId = data.ReadString();
-			string buildingName = data.ReadString();
-			int buildingWidth = data.ReadInt32();
-			int buildingLength = data.ReadInt32();
-			int buildingHeight = data.ReadInt32();
+				string buildingId = data.ReadString();
+				string buildingName = data.ReadString();
+				int buildingWidth = data.ReadInt32();
+				int buildingLength = data.ReadInt32();
+				int buildingHeight = data.ReadInt32();
 
-			Database.UpdateBuilding(new() {
+				Database.UpdateBuilding(new() {
 
-				Id = new(buildingId),
-				Name = buildingName,
-				Size = new() {
+					Id = new(buildingId),
+					Name = buildingName,
+					Size = new() {
 
-					Width = buildingWidth,
-					Height = buildingHeight,
-					Length = buildingLength
+						Width = buildingWidth,
+						Height = buildingHeight,
+						Length = buildingLength
+
+					}
+
+				});
+
+				foreach(AdminClient adminClient in Clients) {
+
+					if(adminClient == client) {
+
+						continue;
+
+					}
+
+					adminClient.SendBuilding(buildingId,
+												buildingName,
+												buildingWidth,
+												buildingLength,
+												buildingHeight);
 
 				}
 
 			});
 
-			foreach(AdminClient adminClient in Clients) {
+		On((byte) Message.CreateRack,
+			(client, data) => {
 
-				if(adminClient == client) {
+				string buildingId = data.ReadString();
 
-					continue;
+				Database.Collections.Rack rack = Database.CreateRack(buildingId);
+
+				foreach(AdminClient adminClient in Clients) {
+
+					adminClient.SendRack(rack.StringId,
+											rack.BuildingId!.ToString()!,
+											rack.Position!.X,
+											rack.Position!.Z,
+											rack.Size!.Width,
+											rack.Size!.Length,
+											rack.Shelves,
+											(float) rack.Spacing,
+											(float) rack.Rotation);
 
 				}
 
-				adminClient.SendBuilding(buildingId,
-											buildingName,
-											buildingWidth,
-											buildingLength,
-											buildingHeight);
+			});
 
-			}
+		On((byte) Message.UpdateRack,
+			(client, data) => {
 
-		});
+				string rackId = data.ReadString();
+				int rackX = data.ReadInt32();
+				int rackZ = data.ReadInt32();
+				int rackWidth = data.ReadInt32();
+				int rackLength = data.ReadInt32();
+				int rackShelves = data.ReadInt32();
+				float rackSpacing = data.ReadSingle();
+				float rackRotation = data.ReadSingle();
 
-		On((byte) Message.CreateRack, (client, data) => {
+				Database.Collections.Rack? rack = Database.FindRack(rackId);
 
-			string buildingId = data.ReadString();
+				if(rack == null) {
 
-			Database.Collections.Rack rack = Database.CreateRack(buildingId);
+					Output.Error($"Failed to update Rack: Rack with Id {rackId} doesn't exist!");
 
-			foreach(AdminClient adminClient in Clients) {
+					return;
 
-				adminClient.SendRack(rack.StringId,
-										rack.BuildingId!.ToString()!,
-										rack.Position!.X,
-										rack.Position!.Z,
-										rack.Size!.Width,
-										rack.Size!.Length,
-										rack.Shelves,
-										(float) rack.Spacing,
-										(float) rack.Rotation);
+				}
 
-			}
+				rack.Position = new() {
 
-		});
+					X = rackX,
+					Z = rackZ
 
-		On((byte) Message.UpdateRack, (client, data) => {
+				};
 
-			string rackId = data.ReadString();
-			int rackX = data.ReadInt32();
-			int rackZ = data.ReadInt32();
-			int rackWidth = data.ReadInt32();
-			int rackLength = data.ReadInt32();
-			int rackShelves = data.ReadInt32();
-			float rackSpacing = data.ReadSingle();
-			float rackRotation = data.ReadSingle();
+				rack.Size = new() {
 
-			Database.Collections.Rack? rack = Database.FindRack(rackId);
+					Width = rackWidth,
+					Length = rackLength
 
-			if(rack == null) {
+				};
 
-				Output.Error($"Failed to update Rack: Rack with Id {rackId} doesn't exist!");
+				rack.Shelves = rackShelves;
+				rack.Spacing = rackSpacing;
+				rack.Rotation = rackRotation;
 
-				return;
+				Database.UpdateRack(rack);
 
-			}
+				foreach(AdminClient adminClient in Clients) {
 
-			rack.Position = new() {
+					adminClient.SendRack(rack.StringId,
+											rack.BuildingId!.ToString()!,
+											rack.Position!.X,
+											rack.Position!.Z,
+											rack.Size!.Width,
+											rack.Size!.Length,
+											rack.Shelves,
+											(float) rack.Spacing,
+											(float) rack.Rotation);
 
-				X = rackX,
-				Z = rackZ
+				}
 
-			};
+			});
 
-			rack.Size = new() {
+		On((byte) Message.DeleteRack,
+			(client, data) => {
 
-				Width = rackWidth,
-				Length = rackLength
+				string rackId = data.ReadString();
 
-			};
+				Database.Collections.Rack? rack = Database.FindRack(rackId);
 
-			rack.Shelves = rackShelves;
-			rack.Spacing = rackSpacing;
-			rack.Rotation = rackRotation;
+				if(rack == null) {
 
-			Database.UpdateRack(rack);
+					Output.Error("Failed to deleted Rack: Rack not found!");
 
-			foreach(AdminClient adminClient in Clients) {
+					return;
 
-				adminClient.SendRack(rack.StringId,
-										rack.BuildingId!.ToString()!,
-										rack.Position!.X,
-										rack.Position!.Z,
-										rack.Size!.Width,
-										rack.Size!.Length,
-										rack.Shelves,
-										(float) rack.Spacing,
-										(float) rack.Rotation);
+				}
 
-			}
+				Database.DeleteRack(rack.Id);
 
-		});
+				foreach(AdminClient adminClient in Clients) {
 
-		On((byte) Message.DeleteRack, (client, data) => {
+					adminClient.SendNoRack(rackId,
+											rack.BuildingId!
+															.ToString()!);
 
-			string rackId = data.ReadString();
+				}
 
-			Database.Collections.Rack? rack = Database.FindRack(rackId);
-
-			if(rack == null) {
-
-				Output.Error("Failed to deleted Rack: Rack not found!");
-
-				return;
-
-			}
-
-			Database.DeleteRack(rack.Id);
-
-			foreach(AdminClient adminClient in Clients) {
-
-				adminClient.SendNoRack(rackId, rack.BuildingId!.ToString()!);
-
-			}
-
-		});
+			});
 
 	}
 
-	protected override void OnAuth(IWebSocketConnection socket, string message, Action<string, string?> reject) {
+	protected override void OnAuth(IWebSocketConnection socket,
+									string message,
+									Action<string, string?> reject) {
 
 		void Accept(string authToken, ObjectId adminId) {
 
@@ -255,9 +268,11 @@ public class AdminController : ControllerBase<AdminClient> {
 				Success = true,
 				AuthToken = authToken
 
-			}, Program.JSON_SERIALIZER_OPTIONS));
+			}, Program.JsonSerializerOptions));
 
-			foreach((string Message, Output.Severity Severity) log in Output.Logs.Where(log => log.Severity != Output.Severity.Debug)) {
+			foreach((string Message, Output.Severity Severity) log in
+						Output.Logs.Where(log =>
+													log.Severity != Output.Severity.Debug)) {
 
 				adminClient.SendLog(log.Message, log.Severity);
 
@@ -269,10 +284,10 @@ public class AdminController : ControllerBase<AdminClient> {
 											building.Name!,
 											building.Size!.Width,
 											building.Size!.Length,
-				building.Size!.Height);
+											building.Size!.Height);
 			}
 
-			Dictionary<string, string> rackIdToBuildingId = new();
+			Dictionary<string, string> rackIdToBuildingId = [];
 
 			foreach(Database.Collections.Rack rack in Database.GetRacks()) {
 
@@ -313,7 +328,8 @@ public class AdminController : ControllerBase<AdminClient> {
 
 			foreach(Database.Collections.Worker worker in Database.GetWorkers()) {
 
-				adminClient.SendWorker(worker.StringId, worker.Name ?? "[null]");
+				adminClient.SendWorker(worker.StringId,
+										worker.Name ?? "[null]");
 
 			}
 
@@ -327,8 +343,9 @@ public class AdminController : ControllerBase<AdminClient> {
 
 		}
 
-		AuthRequest? authRequest = JsonSerializer.Deserialize<AuthRequest>(message,
-																			Program.JSON_SERIALIZER_OPTIONS);
+		AuthRequest? authRequest =
+			JsonSerializer.Deserialize<AuthRequest>(message,
+													Program.JsonSerializerOptions);
 
 		if(authRequest == null) {
 
@@ -341,7 +358,10 @@ public class AdminController : ControllerBase<AdminClient> {
 		if(authRequest.Username != null &&
 			authRequest.Password != null) {
 
-			ObjectId? adminId = Database.GetAdmin(authRequest.Username, authRequest.Password)?.Id;
+			ObjectId? adminId =
+				Database.GetAdmin(authRequest.Username,
+									authRequest.Password)?
+						.Id;
 
 			if(adminId == null) {
 

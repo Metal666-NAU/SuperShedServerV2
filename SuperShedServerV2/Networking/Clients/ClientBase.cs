@@ -20,7 +20,6 @@ public abstract class ClientBase {
 		}
 
 		using MemoryStream memoryStream = new();
-
 		using BinaryWriter binaryWriter = new(memoryStream);
 
 		binaryWriter.Write(command);
